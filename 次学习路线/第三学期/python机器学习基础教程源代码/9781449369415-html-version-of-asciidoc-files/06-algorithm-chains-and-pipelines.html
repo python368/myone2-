@@ -1,0 +1,893 @@
+<section data-type="chapter" id="algorithm-chains-and-pipelines">
+<h1>Algorithm Chains and Pipelines</h1>
+
+
+<p><a data-type="indexterm" data-primary="pipelines" data-see="algorithm chains and pipelines"/><a data-type="indexterm" id="MLalg6" data-primary="machine learning" data-secondary="algorithm chains and pipelines"/><a data-type="indexterm" id="algch6" data-primary="algorithm chains and pipelines"/><a data-type="indexterm" data-primary="chaining" data-see="algorithm chains and pipelines"/><a data-type="indexterm" data-primary="algorithm chains and pipelines" data-secondary="importance of"/><a data-type="indexterm" id="SLCFgridsearch6a" data-primary="scikit-learn classes and functions" data-secondary="GridSearchCV"/><a data-type="indexterm" id="SLCFpipeline6a" data-primary="scikit-learn classes and functions" data-secondary="Pipeline"/>For many machine learning algorithms, the particular representation of
+the data that you provide is very important, as we discussed in <a data-type="xref" href="#representing-data-and-engineering-features"/>. This starts with scaling the data and combining features by hand and
+goes all the way to learning features using unsupervised machine
+learning, as we saw in <a data-type="xref" href="#unsupervised-learning-and-preprocessing"/>. Consequently, most machine learning
+applications require not only the application of a single algorithm, but
+the chaining together of many different processing steps and machine
+learning models. In this chapter, we will cover how to use the <code>Pipeline</code>
+class to simplify the process of building chains of transformations and
+models. In particular, we will see how we can combine <code>Pipeline</code> and
+<code>GridSearchCV</code> to search over parameters for all processing steps at
+once.</p>
+
+<p><a data-type="indexterm" data-primary="scikit-learn classes and functions" data-secondary="load_breast_cancer"/><a data-type="indexterm" id="SLCFsvc6a" data-primary="scikit-learn classes and functions" data-secondary="SVC"/><a data-type="indexterm" id="Csvc6a" data-primary="classifiers" data-secondary="SVC"/>As an example of the importance of chaining models, we noticed that we
+can greatly improve the performance of a kernel SVM on the <code>cancer</code>
+dataset by using the <code>MinMaxScaler</code> for preprocessing. Here&#8217;s code for
+splitting the data, computing the minimum and maximum, scaling the data, and
+training the SVM:</p>
+
+<p><code><strong>In[1]:</strong></code></p>
+
+<pre data-type="programlisting" data-code-language="python">from sklearn.svm import SVC
+from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler
+
+# load and split the data
+cancer = load_breast_cancer()
+X_train, X_test, y_train, y_test = train_test_split(
+    cancer.data, cancer.target, random_state=0)
+
+# compute minimum and maximum on the training data
+scaler = MinMaxScaler().fit(X_train)</pre>
+
+<p><code><strong>In[2]:</strong></code></p>
+
+<pre data-type="programlisting" data-code-language="python"># rescale the training data
+X_train_scaled = scaler.transform(X_train)
+
+svm = SVC()
+# learn an SVM on the scaled training data
+svm.fit(X_train_scaled, y_train)
+# scale the test data and score the scaled data
+X_test_scaled = scaler.transform(X_test)
+print("Test score: {:.2f}".format(svm.score(X_test_scaled, y_test)))</pre>
+
+<p><code><strong>Out[2]:</strong></code></p>
+
+<pre data-type="programlisting">Test score: 0.95</pre>
+
+
+
+
+
+
+<section data-type="sect1" id="parameter-selection-with-preprocessing">
+<h1>Parameter Selection with Preprocessing</h1>
+
+<p><a data-type="indexterm" data-primary="algorithm chains and pipelines" data-secondary="parameter selection with preprocessing"/><a data-type="indexterm" data-primary="preprocessing" data-secondary="parameter selection with"/>Now let&#8217;s say we want to find better parameters for <code>SVC</code> using
+<code>GridSearchCV</code>, as discussed in <a data-type="xref" href="#model-evaluation-and-improvement"/>. How should we go about doing
+this? A naive approach might look like this:</p>
+
+<p><code><strong>In[3]:</strong></code></p>
+
+<pre data-type="programlisting" data-code-language="python">from sklearn.model_selection import GridSearchCV
+# for illustration purposes only, don't use this code!
+param_grid = {'C': [0.001, 0.01, 0.1, 1, 10, 100],
+              'gamma': [0.001, 0.01, 0.1, 1, 10, 100]}
+grid = GridSearchCV(SVC(), param_grid=param_grid, cv=5)
+grid.fit(X_train_scaled, y_train)
+print("Best cross-validation accuracy: {:.2f}".format(grid.best_score_))
+print("Best set score: {:.2f}".format(grid.score(X_test_scaled, y_test)))
+print("Best parameters: ", grid.best_params_)</pre>
+
+<p><code><strong>Out[3]:</strong></code></p>
+
+<pre data-type="programlisting">Best cross-validation accuracy: 0.98
+Best set score: 0.97
+Best parameters:  {'gamma': 1, 'C': 1}</pre>
+
+<p>Here, we ran the grid search over the parameters of <code>SVC</code> using the
+scaled data. However, there is a subtle catch in what we just did. When
+scaling the data, we used <em>all the data in the training set</em> to find out how
+to train it. We then use the <em>scaled training data</em> to run our
+grid search using cross-validation. For each split in the
+cross-validation, some part of the original training set will be
+declared the training part of the split, and some the test part of the
+split. The test part is used to measure what new data will look like to
+a model trained on the training part. However, we already used the
+information contained in the test part of the split, when scaling the
+data. Remember that the test part in each split in the cross-validation
+is part of the training set, and we used the information from the entire
+training set to find the right scaling of the data. <em>This is
+fundamentally different from how new data looks to the model.</em> If we
+observe new data (say, in form of our test set), this data will not have
+been used to scale the training data, and it might have a different
+minimum and maximum than the training data. The following example (<a data-type="xref" href="#improper_preprocessing"/>) shows
+how the data processing during cross-validation and the final evaluation
+differ:</p>
+
+<p><code><strong>In[4]:</strong></code></p>
+
+<pre data-type="programlisting" data-code-language="python">mglearn.plots.plot_improper_processing()</pre>
+
+<figure id="improper_preprocessing">
+<img src="images/malp_0601.png" alt="png"/>
+<figcaption>Data usage when preprocessing outside the cross-validation loop</figcaption>
+</figure>
+
+<p>So, the splits in the cross-validation no longer correctly mirror how new
+data will look to the modeling process. We already leaked information
+from these parts of the data into our modeling process. This will lead
+to overly optimistic results during cross-validation, and possibly the
+selection of suboptimal parameters.</p>
+
+<p>To get around this problem, the splitting of the dataset during
+cross-validation should be done <em>before doing any preprocessing</em>. Any
+process that extracts knowledge from the dataset should only ever be
+applied to the training portion of the dataset, so any cross-validation
+should be the "outermost loop" in your processing.</p>
+
+<p><a data-type="indexterm" data-primary="cross_val_score function"/><a data-type="indexterm" data-primary="scikit-learn classes and functions" data-secondary="cross_val_score"/>To achieve this in <code>scikit-learn</code> with the <code>cross_val_score</code> function and
+the <code>GridSearchCV</code> function, we can use the <code>Pipeline</code> class. The
+<code>Pipeline</code> class is a class that allows "gluing" together multiple
+processing steps into a single <code>scikit-learn</code> estimator. The <code>Pipeline</code>
+class itself has <code>fit</code>, <code>predict</code>, and <code>score</code> methods and behaves just
+like any other model in <code>scikit-learn</code>. The most common use case of the
+<code>Pipeline</code> class is in chaining preprocessing steps (like scaling of the
+data) together with a supervised model like a classifier.</p>
+</section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<section data-type="sect1" id="building-pipelines">
+<h1>Building Pipelines</h1>
+
+<p><a data-type="indexterm" data-primary="algorithm chains and pipelines" data-secondary="building pipelines"/><a data-type="indexterm" data-primary="scikit-learn classes and functions" data-secondary="MinMaxScaler"/><a data-type="indexterm" data-primary="algorithms" data-secondary="scaling" data-tertiary="MinMaxScaler"/>Let&#8217;s look at how we can use the <code>Pipeline</code> class to express the
+workflow for training an SVM after scaling the data with <code>MinMaxScaler</code> (for
+now without the grid search). First, we build a pipeline object by
+providing it with a list of steps. Each step is a tuple containing a
+name (any string of your choosing<span data-type="footnote">With one exception: the name can&#8217;t contain a double underscore, <code>__</code>.</span>) and an instance of an
+estimator:</p>
+
+<p><code><strong>In[5]:</strong></code></p>
+
+<pre data-type="programlisting" data-code-language="python">from sklearn.pipeline import Pipeline
+pipe = Pipeline([("scaler", MinMaxScaler()), ("svm", SVC())])</pre>
+
+<p>Here, we created two steps: the first, called <code>"scaler"</code>, is an instance of
+<code>MinMaxScaler</code>, and the second, called <code>"svm"</code>, is an instance of <code>SVC</code>. Now, we can fit
+the pipeline, like any other <code>scikit-learn</code> estimator:</p>
+
+<p><code><strong>In[6]:</strong></code></p>
+
+<pre data-type="programlisting" data-code-language="python">pipe.fit(X_train, y_train)</pre>
+
+<p>Here, <code>pipe.fit</code> first calls <code>fit</code> on the first step (the scaler), then
+transforms the training data using the scaler, and finally fits the SVM
+with the scaled data. To evaluate on the test data, we simply call
+<code>pipe.score</code>:</p>
+
+<p><code><strong>In[7]:</strong></code></p>
+
+<pre data-type="programlisting" data-code-language="python">print("Test score: {:.2f}".format(pipe.score(X_test, y_test)))</pre>
+
+<p><code><strong>Out[7]:</strong></code></p>
+
+<pre data-type="programlisting">Test score: 0.95</pre>
+
+<p><a data-type="indexterm" data-primary="score method"/>Calling the <code>score</code> method on the pipeline first transforms the test
+data using the scaler, and then calls the <code>score</code> method on the SVM
+using the scaled test data. As you can see, the result is identical to
+the one we got from the code at the beginning of the chapter, when doing the transformations by hand.
+Using the pipeline, we reduced the code needed for our "preprocessing + classification" process. The main benefit of using the pipeline,
+however, is that we can now use this single estimator in
+<code>cross_val_score</code> or <code>GridSearchCV</code>.</p>
+</section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<section data-type="sect1" id="using-pipelines-in-grid-searches">
+<h1>Using Pipelines in Grid Searches</h1>
+
+<p><a data-type="indexterm" id="ACpipegrid6" data-primary="algorithm chains and pipelines" data-secondary="using pipelines in grid searches"/><a data-type="indexterm" id="GSpipe6" data-primary="grid search" data-secondary="using pipelines in"/>Using a pipeline in a grid search works the same way as using any other
+estimator. We define a parameter grid to search over, and construct a
+<code>GridSearchCV</code> from the pipeline and the parameter grid. When specifying
+the parameter grid, there is a slight change, though. We need to specify
+for each parameter which step of the pipeline it belongs to. Both
+parameters that we want to adjust, <code>C</code> and <code>gamma</code>, are parameters of
+<code>SVC</code>, the second step. We gave this step the name <code>"svm"</code>. The syntax
+to define a parameter grid for a pipeline is to specify for each
+parameter the step name, followed by <code>__</code> (a double underscore),
+followed by the parameter name. To search over the <code>C</code> parameter of <code>SVC</code> we therefore have to use <code>"svm__C"</code> as the key in the parameter
+grid dictionary, and similarly for <code>gamma</code>:</p>
+
+<p><code><strong>In[8]:</strong></code></p>
+
+<pre data-type="programlisting" data-code-language="python">param_grid = {'svm__C': [0.001, 0.01, 0.1, 1, 10, 100],
+              'svm__gamma': [0.001, 0.01, 0.1, 1, 10, 100]}</pre>
+
+<p><a data-type="indexterm" data-primary="" data-startref="Csvc6a"/><a data-type="indexterm" data-primary="" data-startref="SLCFsvc6a"/>With this parameter grid we can use <code>GridSearchCV</code> as usual:</p>
+
+<p><code><strong>In[9]:</strong></code></p>
+
+<pre data-type="programlisting" data-code-language="python">grid = GridSearchCV(pipe, param_grid=param_grid, cv=5)
+grid.fit(X_train, y_train)
+print("Best cross-validation accuracy: {:.2f}".format(grid.best_score_))
+print("Test set score: {:.2f}".format(grid.score(X_test, y_test)))
+print("Best parameters: {}".format(grid.best_params_))</pre>
+
+<p><code><strong>Out[9]:</strong></code></p>
+
+<pre data-type="programlisting">Best cross-validation accuracy: 0.98
+Test set score: 0.97
+Best parameters: {'svm__C': 1, 'svm__gamma': 1}</pre>
+
+<p><a data-type="indexterm" data-primary="" data-startref="SLCFgridsearch6a"/><a data-type="indexterm" data-primary="scikit-learn classes and functions" data-secondary="MinMaxScaler"/>In contrast to the grid search we did before, now for each split in the
+cross-validation, the <code>MinMaxScaler</code> is refit with only the training
+splits and no information is leaked from the test split into the parameter
+search. Compare this (<a data-type="xref" href="#data_usage_inside_cv_loop_using_pipeline"/>) with
+<a data-type="xref" href="#improper_preprocessing"/> earlier in this chapter:</p>
+
+<p><code><strong>In[10]:</strong></code></p>
+
+<pre data-type="programlisting" data-code-language="python">mglearn.plots.plot_proper_processing()</pre>
+
+<figure id="data_usage_inside_cv_loop_using_pipeline">
+<img src="images/malp_06in01.png" alt="png"/>
+<figcaption>Data usage when preprocessing inside the cross-validation loop with a <span class="keep-together">pipeline</span></figcaption>
+</figure>
+
+<p><a data-type="indexterm" data-primary="information leakage"/><a data-type="indexterm" data-primary="leakage"/>The impact of leaking information in the cross-validation varies
+depending on the nature of the preprocessing step. Estimating the scale
+of the data using the test fold usually doesn&#8217;t have a terrible impact,
+while using the test fold in feature extraction and feature selection
+can lead to substantial differences in outcomes.</p>
+<aside data-type="sidebar">
+<h5>Illustrating Information Leakage</h5>
+<p>A great example of leaking information in cross-validation is given in
+Hastie, Tibshirani, and Friedman&#8217;s book <em>The Elements of Statistical
+Learning</em>, and we reproduce an adapted version here. Let&#8217;s consider a
+synthetic regression task with 100 samples and 1,000 features that are
+sampled independently from a Gaussian distribution. We also sample the
+response from a Gaussian distribution:</p>
+
+<p><code><strong>In[11]:</strong></code></p>
+
+<pre data-type="programlisting" data-code-language="python">rnd = np.random.RandomState(seed=0)
+X = rnd.normal(size=(100, 10000))
+y = rnd.normal(size=(100,))</pre>
+
+<p><a data-type="indexterm" data-primary="scikit-learn classes and functions" data-secondary="Ridge"/><a data-type="indexterm" data-primary="algorithms" data-secondary="supervised, regression" data-tertiary="Ridge"/><a data-type="indexterm" data-primary="scikit-learn classes and functions" data-secondary="SelectPercentile"/><a data-type="indexterm" data-primary="scikit-learn classes and functions" data-secondary="f_regression"/><a data-type="indexterm" data-primary="regression" data-secondary="f_regression"/>Given the way we created the dataset, there is no relation between the
+data, <code>X</code>, and the target, <code>y</code> (they are independent), so it should not be
+possible to learn anything from this dataset. We will now do the
+following. First, select the most informative of the 10 features using
+<code>SelectPercentile</code> feature selection, and then we evaluate a <code>Ridge</code>
+regressor using cross-validation:</p>
+
+<p><code><strong>In[12]:</strong></code></p>
+
+<pre data-type="programlisting" data-code-language="python">from sklearn.feature_selection import SelectPercentile, f_regression
+
+select = SelectPercentile(score_func=f_regression, percentile=5).fit(X, y)
+X_selected = select.transform(X)
+print("X_selected.shape: {}".format(X_selected.shape))</pre>
+
+<p><code><strong>Out[12]:</strong></code></p>
+
+<pre data-type="programlisting">X_selected.shape: (100, 500)</pre>
+
+<p><code><strong>In[13]:</strong></code></p>
+
+<pre data-type="programlisting" data-code-language="python">from sklearn.model_selection import cross_val_score
+from sklearn.linear_model import Ridge
+print("Cross-validation accuracy (cv only on ridge): {:.2f}".format(
+      np.mean(cross_val_score(Ridge(), X_selected, y, cv=5))))</pre>
+
+<p><code><strong>Out[13]:</strong></code></p>
+
+<pre data-type="programlisting">Cross-validation accuracy (cv only on ridge): 0.91</pre>
+
+<p>The mean <em>R</em><sup>2</sup> computed by cross-validation is 0.91,
+indicating a very good model. This clearly cannot be right, as our data
+is entirely random. What happened here is that our feature selection
+picked out some features among the 10,000 random features that are (by
+chance) very well correlated with the target. Because we fit the feature
+selection <em>outside</em> of the cross-validation, it could find features that
+are correlated both on the training and the test folds. The information
+we leaked from the test folds was very informative, leading to highly
+unrealistic results. Let&#8217;s compare this to a proper cross-validation
+using a pipeline:</p>
+
+<p><code><strong>In[14]:</strong></code></p>
+
+<pre data-type="programlisting" data-code-language="python">pipe = Pipeline([("select", SelectPercentile(score_func=f_regression,
+                                             percentile=5)),
+                 ("ridge", Ridge())])
+print("Cross-validation accuracy (pipeline): {:.2f}".format(
+      np.mean(cross_val_score(pipe, X, y, cv=5))))</pre>
+
+<p><code><strong>Out[14]:</strong></code></p>
+
+<pre data-type="programlisting">Cross-validation accuracy (pipeline): -0.25</pre>
+
+<p>This time, we get a <em>negative</em> <em>R</em><sup>2</sup> score, indicating a
+very poor model. Using the pipeline, the feature selection is now
+<em>inside</em> the cross-validation loop. This means features can only be
+selected using the training folds of the data, not the test fold. The
+feature selection finds features that are correlated with the target on
+the training set, but because the data is entirely random, these
+features are not correlated with the target on the test set. In this
+example, rectifying the data leakage issue in the feature selection
+makes the difference between concluding that a model works very well and
+concluding that a model works not at all.<a data-type="indexterm" data-primary="" data-startref="ACpipegrid6"/><a data-type="indexterm" data-primary="" data-startref="GSpipe6"/></p>
+</aside>
+</section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<section data-type="sect1" id="the-general-pipeline-interface">
+<h1>The General Pipeline Interface</h1>
+
+<p><a data-type="indexterm" data-primary="algorithm chains and pipelines" data-secondary="pipeline interface"/>The <code>Pipeline</code> class is not restricted to preprocessing and
+classification, but can in fact join any number of estimators together.
+For example, you could build a pipeline containing feature extraction,
+feature selection, scaling, and classification, for a total of four
+steps. Similarly, the last step could be regression or clustering instead
+of classification.</p>
+
+<p><a data-type="indexterm" data-primary="transform method"/>The only requirement for estimators in a pipeline is that all but the
+last step need to have a <code>transform</code> method, so they can produce a new
+representation of the data that can be used in the next step.</p>
+
+<p>Internally, during the call to <code>Pipeline.fit</code>, the pipeline calls
+<code>fit</code> and then <code>transform</code> on each step in turn,<span data-type="footnote">Or just <code>fit_transform</code>.</span> with the input given by the output of the <code>transform</code>
+method of the previous step. For the last step in the pipeline, just
+<code>fit</code> is called.</p>
+
+<p>Brushing over some finer details, this is implemented
+as follows. Remember that <code>pipeline.steps</code> is a list of tuples, so
+<code>pipeline.steps[0][1]</code> is the first estimator, <code>pipeline.steps[1][1]</code> is
+the second estimator, and so on:</p>
+
+<p><code><strong>In[15]:</strong></code></p>
+
+<pre data-type="programlisting" data-code-language="python">def fit(self, X, y):
+    X_transformed = X
+    for name, estimator in self.steps[:-1]:
+        # iterate over all but the final step
+        # fit and transform the data
+        X_transformed = estimator.fit_transform(X_transformed, y)
+    # fit the last step
+    self.steps[-1][1].fit(X_transformed, y)
+    return self</pre>
+
+<p>When predicting using <code>Pipeline</code>, we similarly <code>transform</code> the data
+using all but the last step, and then call <code>predict</code> on the last step:</p>
+
+<p><code><strong>In[16]:</strong></code></p>
+
+<pre data-type="programlisting" data-code-language="python">def predict(self, X):
+    X_transformed = X
+    for step in self.steps[:-1]:
+        # iterate over all but the final step
+        # transform the data
+        X_transformed = step[1].transform(X_transformed)
+    # fit the last step
+    return self.steps[-1][1].predict(X_transformed)</pre>
+
+<p>The process is illustrated in <a data-type="xref" href="#overview_pipeline_training_prediction_process"/> for two transformers, <code>T1</code> and <code>T2</code>, and a
+<span class="keep-together">classifier</span> (called <code>Classifier</code>).</p>
+
+<figure id="overview_pipeline_training_prediction_process">
+<img src="images/malp_06in02.png" alt="pipeline_illustration"/>
+<figcaption>Overview of the pipeline training and prediction process</figcaption>
+</figure>
+
+<p><a data-type="indexterm" id="SLCFpca6a" data-primary="scikit-learn classes and functions" data-secondary="PCA"/>The pipeline is actually even more general than this. There is no
+requirement for the last step in a pipeline to have a <code>predict</code>
+function, and we could create a pipeline just containing, for example, a
+scaler and <code>PCA</code>. Then, because the last step (<code>PCA</code>) has a <code>transform</code>
+method, we could call <code>transform</code> on the pipeline to get the output of
+<code>PCA.transform</code> applied to the data that was processed by the previous
+step. The last step of a pipeline is only required to have a <code>fit</code>
+method.</p>
+
+
+
+
+
+
+
+
+<section data-type="sect2" id="convenient-pipeline-creation-with-make_pipeline">
+<h2>Convenient Pipeline Creation with make_pipeline</h2>
+
+<p><a data-type="indexterm" id="ACPmakepipe6" data-primary="algorithm chains and pipelines" data-secondary="building pipelines with make_pipeline"/><a data-type="indexterm" data-primary="make_pipeline function" data-secondary="syntax for"/><a data-type="indexterm" id="SLCFsvc6b" data-primary="scikit-learn classes and functions" data-secondary="SVC"/><a data-type="indexterm" id="Csvc6b" data-primary="classifiers" data-secondary="SVC"/><a data-type="indexterm" id="SLCFmkpipe6a" data-primary="scikit-learn classes and functions" data-secondary="make_pipeline"/>Creating a pipeline using the syntax described earlier is sometimes a
+bit cumbersome, and we often don&#8217;t need user-specified names for each
+step. There is a convenience function, <code>make_pipeline</code>, that will create a
+pipeline for us and automatically name each step based on its class. The
+syntax for <code>make_pipeline</code> is as follows:</p>
+
+<p><code><strong>In[17]:</strong></code></p>
+
+<pre data-type="programlisting" data-code-language="python">from sklearn.pipeline import make_pipeline
+# standard syntax
+pipe_long = Pipeline([("scaler", MinMaxScaler()), ("svm", SVC(C=100))])
+# abbreviated syntax
+pipe_short = make_pipeline(MinMaxScaler(), SVC(C=100))</pre>
+
+<p><a data-type="indexterm" data-primary="make_pipeline function" data-secondary="displaying steps attribute"/>The pipeline objects <code>pipe_long</code> and <code>pipe_short</code> do exactly the same
+thing, but <code>pipe_short</code> has steps that were automatically named.
+We can see the names of the steps by looking at the <code>steps</code> attribute:</p>
+
+<p><code><strong>In[18]:</strong></code></p>
+
+<pre data-type="programlisting" data-code-language="python">print("Pipeline steps:\n{}".format(pipe_short.steps))</pre>
+
+<p><code><strong>Out[18]:</strong></code></p>
+
+<pre data-type="programlisting">Pipeline steps:
+[('minmaxscaler', MinMaxScaler(copy=True, feature_range=(0, 1))),
+ ('svc', SVC(C=100, cache_size=200, class_weight=None, coef0=0.0,
+	     decision_function_shape=None, degree=3, gamma='auto',
+             kernel='rbf', max_iter=-1, probability=False,
+             random_state=None, shrinking=True, tol=0.001,
+             verbose=False))]</pre>
+
+<p><a data-type="indexterm" id="SLCFstdscal6a" data-primary="scikit-learn classes and functions" data-secondary="StandardScaler"/><a data-type="indexterm" id="Ascalstndscal6a" data-primary="algorithms" data-secondary="scaling" data-tertiary="StandardScaler"/>The steps are named <code>minmaxscaler</code> and <code>svc</code>. In general, the step names
+are just lowercase versions of the class names. If multiple steps have
+the same class, a number is appended:</p>
+
+<p><code><strong>In[19]:</strong></code></p>
+
+<pre data-type="programlisting" data-code-language="python">from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+
+pipe = make_pipeline(StandardScaler(), PCA(n_components=2), StandardScaler())
+print("Pipeline steps:\n{}".format(pipe.steps))</pre>
+
+<p><code><strong>Out[19]:</strong></code></p>
+
+<pre data-type="programlisting">Pipeline steps:
+[('standardscaler-1', StandardScaler(copy=True, with_mean=True, with_std=True)),
+ ('pca', PCA(copy=True, iterated_power=4, n_components=2, random_state=None,
+             svd_solver='auto', tol=0.0, whiten=False)),
+ ('standardscaler-2', StandardScaler(copy=True, with_mean=True, with_std=True))]</pre>
+
+<p>As you can see, the first <code>StandardScaler</code> step was named
+<code>standardscaler-1</code> and the second <code>standardscaler-2</code>. However, in
+such settings it might be better to use the <code>Pipeline</code> construction with
+explicit names, to give more semantic names to each step.</p>
+</section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<section data-type="sect2" id="accessing-step-attributes">
+<h2>Accessing Step Attributes</h2>
+
+<p><a data-type="indexterm" data-primary="make_pipeline function" data-secondary="accessing step attributes"/>Often you will want to inspect attributes of one of the steps of the
+pipeline—say, the coefficients of a linear model or the components
+extracted by <code>PCA</code>. The easiest way to access the steps in a pipeline is via
+the <code>named_steps</code> attribute, which is a dictionary from the step names to
+the estimators:<a data-type="indexterm" data-primary="" data-startref="SLCFpca6a"/></p>
+
+<p class="pagebreak-before"><code><strong>In[20]:</strong></code></p>
+
+<pre data-type="programlisting" data-code-language="python"># fit the pipeline defined before to the cancer dataset
+pipe.fit(cancer.data)
+# extract the first two principal components from the "pca" step
+components = pipe.named_steps["pca"].components_
+print("components.shape: {}".format(components.shape))</pre>
+
+<p><code><strong>Out[20]:</strong></code></p>
+
+<pre data-type="programlisting">components.shape: (2, 30)</pre>
+</section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<section data-type="sect2" id="accessing-attributes-in-grid-searched-pipeline.">
+<h2>Accessing Attributes in a Grid-Searched Pipeline</h2>
+
+<p><a data-type="indexterm" data-primary="make_pipeline function" data-secondary="grid-searched pipelines and"/><a data-type="indexterm" data-primary="grid search" data-secondary="accessing pipeline attributes"/><a data-type="indexterm" data-primary="scikit-learn classes and functions" data-secondary="LogisticRegression"/><a data-type="indexterm" data-primary="classifiers" data-secondary="LogisticRegression"/>As we discussed earlier in this chapter, one of the main reasons to use pipelines is for
+doing grid searches. A common task is to access some of the steps of a
+pipeline inside a grid search. Let&#8217;s grid search a <code>LogisticRegression</code>
+classifier on the <code>cancer</code> dataset, using <code>Pipeline</code> and
+<code>StandardScaler</code> to scale the data before passing it to the
+<code>LogisticRegression</code> classifier. First we create a pipeline using the
+<code>make_pipeline</code> function:</p>
+
+<p><code><strong>In[21]:</strong></code></p>
+
+<pre data-type="programlisting" data-code-language="python">from sklearn.linear_model import LogisticRegression
+
+pipe = make_pipeline(StandardScaler(), LogisticRegression())</pre>
+
+<p>Next, we create a parameter grid. As explained in <a data-type="xref" href="#supervised-learning"/>, the regularization parameter to tune for <code>LogisticRegression</code> is the parameter <code>C</code>. We use a logarithmic grid for this parameter, searching between 0.01 and
+100. Because we used the <code>make_pipeline</code> function, the name of the
+<code>LogisticRegression</code> step in the pipeline is the lowercased class name,
+<code>logisticregression</code>. To tune the parameter <code>C</code>, we therefore have to
+specify a parameter grid for <code>logisticregression__C</code>:</p>
+
+<p><code><strong>In[22]:</strong></code></p>
+
+<pre data-type="programlisting" data-code-language="python">param_grid = {'logisticregression__C': [0.01, 0.1, 1, 10, 100]}</pre>
+
+<p><a data-type="indexterm" id="SLCFgridsearch6b" data-primary="scikit-learn classes and functions" data-secondary="GridSearchCV"/>As usual, we split the <code>cancer</code> dataset into training and test sets, and
+fit a grid search:</p>
+
+<p><code><strong>In[23]:</strong></code></p>
+
+<pre data-type="programlisting" data-code-language="python">X_train, X_test, y_train, y_test = train_test_split(
+    cancer.data, cancer.target, random_state=4)
+grid = GridSearchCV(pipe, param_grid, cv=5)
+grid.fit(X_train, y_train)</pre>
+
+<p>So how do we access the coefficients of the best <code>LogisticRegression</code>
+model that was found by <code>GridSearchCV</code>? From <a data-type="xref" href="#model-evaluation-and-improvement"/> we know that the
+best model found by <span class="keep-together"><code>GridSearchCV</code></span>, trained on all the training data, is
+stored in <code>grid.best_estimator_</code>:</p>
+
+<p class="pagebreak-before"><code><strong>In[24]:</strong></code></p>
+
+<pre data-type="programlisting" data-code-language="python">print("Best estimator:\n{}".format(grid.best_estimator_))</pre>
+
+<p><code><strong>Out[24]:</strong></code></p>
+
+<pre data-type="programlisting">Best estimator:
+Pipeline(steps=[
+    ('standardscaler', StandardScaler(copy=True, with_mean=True, with_std=True)),
+    ('logisticregression', LogisticRegression(C=0.1, class_weight=None,
+    dual=False, fit_intercept=True, intercept_scaling=1, max_iter=100,
+    multi_class='ovr', n_jobs=1, penalty='l2', random_state=None,
+    solver='liblinear', tol=0.0001, verbose=0, warm_start=False))])</pre>
+
+<p>This <code>best_estimator_</code> in our case is a pipeline with two steps,
+<code>standardscaler</code> and <code>logisticregression</code>. To access the
+<code>logisticregression</code> step, we can use the <code>named_steps</code> attribute of the
+pipeline, as explained earlier:</p>
+
+<p><code><strong>In[25]:</strong></code></p>
+
+<pre data-type="programlisting" data-code-language="python">print("Logistic regression step:\n{}".format(
+      grid.best_estimator_.named_steps["logisticregression"]))</pre>
+
+<p><code><strong>Out[25]:</strong></code></p>
+
+<pre data-type="programlisting">Logistic regression step:
+LogisticRegression(C=0.1, class_weight=None, dual=False, fit_intercept=True,
+                  intercept_scaling=1, max_iter=100, multi_class='ovr', n_jobs=1,
+                  penalty='l2', random_state=None, solver='liblinear', tol=0.0001,
+                  verbose=0, warm_start=False)</pre>
+
+<p>Now that we have the trained <code>LogisticRegression</code> instance, we can
+access the coefficients (weights) associated with each input feature:</p>
+
+<p><code><strong>In[26]:</strong></code></p>
+
+<pre data-type="programlisting" data-code-language="python">print("Logistic regression coefficients:\n{}".format(
+      grid.best_estimator_.named_steps["logisticregression"].coef_))</pre>
+
+<p><code><strong>Out[26]:</strong></code></p>
+
+<pre data-type="programlisting">Logistic regression coefficients:
+[[-0.389 -0.375 -0.376 -0.396 -0.115  0.017 -0.355 -0.39  -0.058  0.209
+  -0.495 -0.004 -0.371 -0.383 -0.045  0.198  0.004 -0.049  0.21   0.224
+  -0.547 -0.525 -0.499 -0.515 -0.393 -0.123 -0.388 -0.417 -0.325 -0.139]]</pre>
+
+<p>This might be a somewhat lengthy expression, but often it comes in handy in
+understanding your models.<a data-type="indexterm" data-primary="" data-startref="ACPmakepipe6"/></p>
+</section>
+
+
+
+
+
+</section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<section data-type="sect1" id="grid-searching-preprocessing-steps-and-model-parameters">
+<h1>Grid-Searching Preprocessing Steps and Model Parameters</h1>
+
+<p><a data-type="indexterm" data-primary="algorithm chains and pipelines" data-secondary="grid search preprocessing steps"/><a data-type="indexterm" data-primary="grid search" data-secondary="pipeline preprocessing"/><a data-type="indexterm" data-primary="models" data-secondary="pipeline preprocessing and"/><a data-type="indexterm" data-primary="preprocessing" data-secondary="pipelines and"/><a data-type="indexterm" id="SLCFridge6b" data-primary="scikit-learn classes and functions" data-secondary="Ridge"/><a data-type="indexterm" id="Asupregridge6b" data-primary="algorithms" data-secondary="supervised, regression" data-tertiary="Ridge"/><a data-type="indexterm" data-primary="scikit-learn classes and functions" data-secondary="load_boston"/><a data-type="indexterm" data-primary="scikit-learn classes and functions" data-secondary="PolynomialFeatures"/>Using pipelines, we can encapsulate all the processing steps in our machine
+learning workflow in a single <code>scikit-learn</code> estimator. Another benefit
+of doing this is that we can now <em>adjust the parameters of the
+preprocessing</em> using the outcome of a supervised task like regression or
+classification. In previous chapters, we used polynomial features on the
+<code>boston</code> dataset before applying the ridge regressor. Let&#8217;s model that
+using a pipeline instead. The pipeline contains three steps—scaling the
+data, computing polynomial features, and ridge regression:</p>
+
+<p><code><strong>In[27]:</strong></code></p>
+
+<pre data-type="programlisting" data-code-language="python">from sklearn.datasets import load_boston
+boston = load_boston()
+X_train, X_test, y_train, y_test = train_test_split(boston.data, boston.target,
+                                                    random_state=0)
+
+from sklearn.preprocessing import PolynomialFeatures
+pipe = make_pipeline(
+    StandardScaler(),
+    PolynomialFeatures(),
+    Ridge())</pre>
+
+<p>How do we know which degrees of polynomials to choose, or whether to
+choose any polynomials or interactions at all? Ideally we want to select
+the <code>degree</code> parameter based on the outcome of the classification. Using
+our pipeline, we can search over the <code>degree</code> parameter together with
+the parameter <code>alpha</code> of <code>Ridge</code>. To do this, we define a <code>param_grid</code>
+that contains both, appropriately prefixed by the step names:</p>
+
+<p><code><strong>In[28]:</strong></code></p>
+
+<pre data-type="programlisting" data-code-language="python">param_grid = {'polynomialfeatures__degree': [1, 2, 3],
+              'ridge__alpha': [0.001, 0.01, 0.1, 1, 10, 100]}</pre>
+
+<p>Now we can run our grid search again:</p>
+
+<p><code><strong>In[29]:</strong></code></p>
+
+<pre data-type="programlisting" data-code-language="python">grid = GridSearchCV(pipe, param_grid=param_grid, cv=5, n_jobs=-1)
+grid.fit(X_train, y_train)</pre>
+
+<p>We can visualize the outcome of the cross-validation using a heat map (<a data-type="xref" href="#heatmap_mean_cv_score_func_degree_poly"/>), as
+we did in <a data-type="xref" href="#model-evaluation-and-improvement"/>:</p>
+
+<p><code><strong>In[30]:</strong></code></p>
+
+<pre data-type="programlisting" data-code-language="python">plt.matshow(grid.cv_results_['mean_test_score'].reshape(3, -1),
+            vmin=0, cmap="viridis")
+plt.xlabel("ridge__alpha")
+plt.ylabel("polynomialfeatures__degree")
+plt.xticks(range(len(param_grid['ridge__alpha'])), param_grid['ridge__alpha'])
+plt.yticks(range(len(param_grid['polynomialfeatures__degree'])),
+           param_grid['polynomialfeatures__degree'])
+
+plt.colorbar()</pre>
+
+<figure id="heatmap_mean_cv_score_func_degree_poly">
+<img src="images/malp_06in03.png" alt="png"/>
+<figcaption>Heat map of mean cross-validation score as a function of the degree of the polynomial features and alpha parameter of Ridge</figcaption>
+</figure>
+
+<p>Looking at the results produced by the cross-validation, we can see that
+using polynomials of degree two helps, but that degree-three polynomials
+are much worse than either degree one or two. This is reflected in the
+best parameters that were found:</p>
+
+<p><code><strong>In[31]:</strong></code></p>
+
+<pre data-type="programlisting" data-code-language="python">print("Best parameters: {}".format(grid.best_params_))</pre>
+
+<p><code><strong>Out[31]:</strong></code></p>
+
+<pre data-type="programlisting">Best parameters: {'polynomialfeatures__degree': 2, 'ridge__alpha': 10}</pre>
+
+<p>Which lead to the following score:</p>
+
+<p><code><strong>In[32]:</strong></code></p>
+
+<pre data-type="programlisting" data-code-language="python">print("Test-set score: {:.2f}".format(grid.score(X_test, y_test)))</pre>
+
+<p><code><strong>Out[32]:</strong></code></p>
+
+<pre data-type="programlisting">Test-set score: 0.77</pre>
+
+<p>Let&#8217;s run a grid search without polynomial features for comparison:</p>
+
+<p><code><strong>In[33]:</strong></code></p>
+
+<pre data-type="programlisting" data-code-language="python">param_grid = {'ridge__alpha': [0.001, 0.01, 0.1, 1, 10, 100]}
+pipe = make_pipeline(StandardScaler(), Ridge())
+grid = GridSearchCV(pipe, param_grid, cv=5)
+grid.fit(X_train, y_train)
+print("Score without poly features: {:.2f}".format(grid.score(X_test, y_test)))</pre>
+
+<p class="pagebreak-before"><code><strong>Out[33]:</strong></code></p>
+
+<pre data-type="programlisting">Score without poly features: 0.63</pre>
+
+<p><a data-type="indexterm" data-primary="" data-startref="SLCFmkpipe6a"/><a data-type="indexterm" data-primary="" data-startref="Asupregridge6b"/><a data-type="indexterm" data-primary="" data-startref="SLCFridge6b"/>As we would expect looking at the grid search results visualized in <a data-type="xref" href="#heatmap_mean_cv_score_func_degree_poly"/>, using
+no polynomial features leads to decidedly worse results.</p>
+
+<p>Searching over
+preprocessing parameters together with model parameters is a very
+powerful strategy. However, keep in mind that <code>GridSearchCV</code> tries <em>all
+possible combinations</em> of the specified parameters. Therefore, adding
+more parameters to your grid exponentially increases the number of
+models that need to be built.</p>
+</section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<section data-type="sect1" id="grid-searching-what-model-to-use">
+<h1>Grid-Searching Which Model To Use</h1>
+
+<p><a data-type="indexterm" data-primary="algorithm chains and pipelines" data-secondary="grid-searching for model selection"/><a data-type="indexterm" data-primary="grid search" data-secondary="model selection with"/><a data-type="indexterm" data-primary="models" data-secondary="selecting with grid search"/><a data-type="indexterm" data-primary="scikit-learn classes and functions" data-secondary="MinMaxScaler"/><a data-type="indexterm" data-primary="algorithms" data-secondary="scaling" data-tertiary="MinMaxScaler"/><a data-type="indexterm" data-primary="scikit-learn classes and functions" data-secondary="RandomForestClassifier"/>You can even go further in combining <code>GridSearchCV</code> and <code>Pipeline</code>: it
+is also possible to search over the actual steps being performed in the
+pipeline (say whether to use <code>StandardScaler</code> or <code>MinMaxScaler</code>). This
+leads to an even bigger search space and should be considered carefully.
+Trying all possible solutions is usually not a viable machine learning
+strategy. However, here is an example comparing a
+<code>RandomForestClassifier</code> and an <code>SVC</code> on the <code>iris</code> dataset. We know
+that the <code>SVC</code> might need the data to be scaled, so we also search over
+whether to use <code>StandardScaler</code> or no preprocessing. For the
+<code>RandomForestClassifier</code>, we know that no preprocessing is necessary. We
+start by defining the pipeline. Here, we explicitly name the steps. We
+want two steps, one for the preprocessing and then a classifier. We can
+instantiate this using <code>SVC</code> and <code>StandardScaler</code>:</p>
+
+<p><code><strong>In[34]:</strong></code></p>
+
+<pre data-type="programlisting" data-code-language="python">pipe = Pipeline([('preprocessing', StandardScaler()), ('classifier', SVC())])</pre>
+
+<p><a data-type="indexterm" data-primary="" data-startref="SLCFpipeline6a"/>Now we can define the <code>parameter_grid</code> to search over. We want the
+<code>classifier</code> to be either <code>RandomForestClassifier</code> or <code>SVC</code>. Because
+they have different parameters to tune, and need different
+preprocessing, we can make use of the list of search grids we discussed
+in <a data-type="xref" href="#search-over-spaces-that-are-not-grids"/>. To assign an estimator to a step, we use the name of the
+step as the parameter name. When we wanted to skip a step in the
+pipeline (for example, because we don&#8217;t need preprocessing for the
+<code>RandomForest</code>), we can set that step to <code>None</code>:</p>
+
+<p><code><strong>In[35]:</strong></code></p>
+
+<pre data-type="programlisting" data-code-language="python">from sklearn.ensemble import RandomForestClassifier
+
+param_grid = [
+    {'classifier': [SVC()], 'preprocessing': [StandardScaler(), None],
+     'classifier__gamma': [0.001, 0.01, 0.1, 1, 10, 100],
+     'classifier__C': [0.001, 0.01, 0.1, 1, 10, 100]},
+    {'classifier': [RandomForestClassifier(n_estimators=100)],
+     'preprocessing': [None], 'classifier__max_features': [1, 2, 3]}]</pre>
+
+<p>Now we can instantiate and run the grid search as usual, here on the
+<code>cancer</code> dataset:</p>
+
+<p><code><strong>In[36]:</strong></code></p>
+
+<pre data-type="programlisting" data-code-language="python">X_train, X_test, y_train, y_test = train_test_split(
+    cancer.data, cancer.target, random_state=0)
+
+grid = GridSearchCV(pipe, param_grid, cv=5)
+grid.fit(X_train, y_train)
+
+print("Best params:\n{}\n".format(grid.best_params_))
+print("Best cross-validation score: {:.2f}".format(grid.best_score_))
+print("Test-set score: {:.2f}".format(grid.score(X_test, y_test)))</pre>
+
+<p><code><strong>Out[36]:</strong></code></p>
+
+<pre data-type="programlisting">Best params:
+{'classifier':
+ SVC(C=10, cache_size=200, class_weight=None, coef0=0.0,
+     decision_function_shape=None, degree=3, gamma=0.01, kernel='rbf',
+     max_iter=-1, probability=False, random_state=None, shrinking=True,
+     tol=0.001, verbose=False),
+ 'preprocessing':
+ StandardScaler(copy=True, with_mean=True, with_std=True),
+ 'classifier__C': 10, 'classifier__gamma': 0.01}
+
+Best cross-validation score: 0.99
+Test-set score: 0.98</pre>
+
+<p>The outcome of the grid search is that <code>SVC</code> with <code>StandardScaler</code>
+preprocessing, <code>C=10</code>, and <code>gamma=0.01</code> gave the best result.<a data-type="indexterm" data-primary="" data-startref="SLCFgridsearch6b"/><a data-type="indexterm" data-primary="" data-startref="Csvc6b"/><a data-type="indexterm" data-primary="" data-startref="SLCFsvc6b"/><a data-type="indexterm" data-primary="" data-startref="Ascalstndscal6a"/><a data-type="indexterm" data-primary="" data-startref="SLCFstdscal6a"/></p>
+</section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<section data-type="sect1" id="algorithm-chains-summary-and-outlook">
+<h1>Summary and Outlook</h1>
+
+<p><a data-type="indexterm" data-primary="algorithm chains and pipelines" data-secondary="overview of"/><a data-type="indexterm" data-primary="scikit-learn classes and functions" data-secondary="Pipeline"/>In this chapter we introduced the <code>Pipeline</code> class, a general-purpose
+tool to chain together multiple processing steps in a machine learning
+workflow. Real-world applications of machine learning rarely involve an
+isolated use of a model, and instead are a sequence of processing steps.
+Using pipelines allows us to encapsulate multiple steps into a single
+Python object that adheres to the familiar <code>scikit-learn</code> interface of
+<code>fit</code>, <code>predict</code>, and <code>transform</code>. In particular when doing model
+evaluation using cross-validation and parameter selection using
+grid search, using the <code>Pipeline</code> class to capture all the processing steps
+is essential for proper evaluation. The <code>Pipeline</code> class also allows
+writing more succinct code, and reduces the likelihood of mistakes that
+can happen when building processing chains without the <code>pipeline</code> class
+(like forgetting to apply all transformers on the test set, or not
+applying them in the right order). Choosing the right combination of
+feature extraction, preprocessing, and models is somewhat of an art, and often requires some trial and error. However, using pipelines, this
+"trying out" of many different processing steps is quite simple. When
+experimenting, be careful not to overcomplicate your processes, and
+make sure to evaluate whether every component you are including in your
+model is necessary.</p>
+
+<p>With this chapter, we have completed our survey of general-purpose tools
+and algorithms provided by <code>scikit-learn</code>. You now possess all the
+required skills and know the necessary mechanisms to apply machine
+learning in practice. In the next chapter, we will dive in more detail
+into one particular type of data that is commonly seen in practice, and
+that requires some special expertise to handle correctly: text data.<a data-type="indexterm" data-primary="" data-startref="MLalg6"/><a data-type="indexterm" data-primary="" data-startref="algch6"/></p>
+</section>
+
+
+
+
+
+
+
+</section>

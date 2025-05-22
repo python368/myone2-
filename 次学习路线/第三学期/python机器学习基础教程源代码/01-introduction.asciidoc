@@ -1,0 +1,1241 @@
+[role="pagenumrestart"]
+[[introduction]]
+== Introduction
+
+((("machine learning", "examples of")))Machine learning is about extracting knowledge from data. It is a
+research field at the intersection of statistics, artificial
+intelligence, and computer science and is also known as predictive
+analytics or statistical learning. The application of machine learning
+methods has in recent years become ubiquitous in everyday life. From
+automatic recommendations of which movies to watch, to what food to
+order or which products to buy, to personalized online radio and
+recognizing your friends in your photos, many modern websites and
+devices have machine learning algorithms at their core. When you look at
+a complex website like Facebook, Amazon, or Netflix, it is very likely
+that every part of the site contains multiple machine learning
+models.
+
+((("data-driven research")))Outside of commercial applications, machine learning has had a
+tremendous influence on the way data-driven research is done today. The
+tools introduced in this book have been applied to diverse scientific
+problems such as understanding stars, finding distant planets,
+discovering new particles, analyzing DNA sequences, and providing
+personalized cancer treatments.
+
+Your application doesn't need to be as large-scale or world-changing as
+these examples in order to benefit from machine learning, though. In this
+chapter, we will explain why machine learning has become so popular and
+discuss what kinds of problems can be solved using machine learning. Then,
+we will show you how to build your first machine learning model,
+introducing important concepts along the way.
+
+[[why-machine-learning]]
+=== Why Machine Learning?
+
+
+((("machine learning", "applications for", id="MLapp1")))((("&quot;intelligent&quot; applications", primary-sortas="intelligent applications")))((("handcoded rules, disadvantages of")))In the early days of "intelligent" applications, many systems used
+handcoded rules of "if" and "else" decisions to process data or adjust
+to user input. Think of a spam filter whose job is to move the appropriate incoming email messages to a
+spam folder. You could make up a blacklist of words that would result
+in an email being marked as spam. This would be an example of using an expert-designed rule system to design an "intelligent" application. Manually
+crafting decision rules is feasible for some applications, particularly those in which humans have a good understanding of the
+process to model. However, using handcoded rules to make decisions has
+two major disadvantages:
+
+* The logic required to make a decision is specific to a single domain
+and task. Changing the task even slightly might require a rewrite of the
+whole system.
+* Designing rules requires a deep understanding of how a decision
+should be made by a human expert.
+
+One example of where this handcoded approach will fail is in detecting
+faces in images. Today, every smartphone can detect a face in an image.
+However, face detection was an unsolved problem until as recently as 2001.
+The main problem is that the way in which pixels (which make up an image
+in a computer) are "perceived" by the computer is very different from
+how humans perceive a face. This difference in representation makes it
+basically impossible for a human to come up with a good set of rules to
+describe what constitutes a face in a digital image.
+
+Using machine learning, however, simply presenting a program with a
+large collection of images of faces is enough for an algorithm to
+determine what characteristics are needed to identify a face.
+
+[[problems-that-machine-learning-can-solve]]
+==== Problems Machine Learning Can Solve
+
+((("supervised learning", "algorithms for", "overview of")))The most successful kinds of machine learning algorithms are those that
+automate decision-making processes by generalizing from known
+examples. In this setting, which is known as _supervised learning_,
+the user provides the algorithm with pairs of inputs and desired
+outputs, and the algorithm finds a way to produce the desired output
+given an input. In particular, the algorithm is able to create an output
+for an input it has never seen before without any help from a human.
+Going back to our example of spam classification, using machine
+learning, the user provides the algorithm with a large number of emails
+(which are the input), together with information about whether any
+of these emails are spam (which is the desired output). Given a new
+email, the algorithm will then produce a prediction as to whether the new email is spam.
+
+Machine learning algorithms that learn from input/output pairs are
+called supervised learning algorithms because a "teacher" provides
+supervision to the algorithms in the form of the desired outputs for each
+example that they learn from. While creating a dataset of inputs and
+outputs is often a laborious manual process, supervised learning
+algorithms are well understood and their performance is easy to measure.
+If your application can be formulated as a supervised learning problem,
+and you are able to create a dataset that includes the desired outcome,
+machine learning will likely be able to solve your problem.
+
+Examples of supervised machine learning tasks include:
+
+((("supervised learning", "examples of")))Identifying the zip code from handwritten digits on an envelope:: Here the input is a scan of the handwriting, and the desired output is
+the actual digits in the zip code. To create a dataset for building a
+machine learning model, you need to collect many envelopes. Then you can
+read the zip codes yourself and store the digits as your desired
+outcomes.
+Determining whether a tumor is benign based on a medical image:: Here the input is the image, and the output is whether the tumor is benign. To create a dataset for building a model, you need
+a database of medical images. You also need an expert opinion, so a
+doctor needs to look at all of the images and decide which tumors are
+benign and which are not. It might even be necessary to do additional
+diagnosis beyond the content of the image to determine whether the tumor in
+the image is cancerous or not.
+Detecting fraudulent activity in credit card transactions:: Here the
+input is a record of the credit card transaction, and the output is
+whether it is likely to be fraudulent or not. Assuming that you are the
+entity distributing the credit cards, collecting a dataset means storing
+all transactions and recording if a user reports any transaction as
+fraudulent.
+
+An interesting thing to note about these examples is that
+although the inputs and outputs look fairly straightforward, the data
+collection process for these three tasks is vastly different. While
+reading envelopes is laborious, it is easy and cheap. Obtaining medical
+imaging and diagnoses, on the other hand, requires not only
+expensive machinery but also rare and expensive expert knowledge, not to
+mention the ethical concerns and privacy issues. In the example of detecting
+credit card fraud, data collection is much simpler. Your customers will
+provide you with the desired output, as they will report fraud. All you
+have to do to obtain the input/output pairs of fraudulent and
+nonfraudulent activity is wait.
+
+_Unsupervised algorithms_ ((("unsupervised learning", "algorithms for", "overview of")))are the other type of algorithm that we will cover in this book. In unsupervised learning, only the input data
+is known, and no known output data is given to the algorithm. While
+there are many successful applications of these methods, they are
+usually harder to understand and evaluate.
+
+((("unsupervised learning", "examples of")))Examples of unsupervised learning include:
+
+Identifying topics in a set of blog posts:: If you have a large
+collection of text data, you might want to summarize it and find
+prevalent themes in it. You might not know beforehand what these topics
+are, or how many topics there might be. Therefore, there are no known
+outputs.
+Segmenting customers into groups with similar preferences:: Given a
+set of customer records, you might want to identify which customers are
+similar, and whether there are groups of customers with similar
+preferences. For a shopping site, these might be "parents," "bookworms,"
+or "gamers." Because you don't know in advance what these groups might
+be, or even how many there are, you have no known outputs.
+Detecting abnormal access patterns to a website:: To identify abuse
+or bugs, it is often helpful to find access patterns that are different
+from the norm. Each abnormal pattern might be very different, and you
+might not have any recorded instances of abnormal behavior. Because in
+this example you only observe traffic, and you don't know what
+constitutes normal and abnormal behavior, this is an unsupervised
+problem.
+
+((("data representation", "table analogy")))((("supervised learning", "data representation")))((("unsupervised learning", "data representation")))For both supervised and unsupervised learning tasks, it is important to
+have a representation of your input data that a computer can understand.
+Often it is helpful to think of your data as a table. Each data point
+that you want to reason about (each email, each customer, each
+transaction) is a row, and each property that describes that data point
+(say, the age of a customer or the amount or location of a transaction) is
+a column. You might describe users by their age, their gender, when they
+created an account, and how often they have bought from your online shop. You
+might describe the image of a tumor by the grayscale values of each
+pixel, or maybe by using the size, shape, and color of the tumor.
+
+((("samples, defined")))((("features, defined")))((("data points, defined")))Each entity or row here is known as a _sample_ (or data point) in machine
+learning, while the columns—the properties that describe these
+entities—are called _features_.
+
+((("feature extraction/feature engineering", "defined")))Later in this book we will go into more detail on the topic of building
+a good representation of your data, which is called _feature extraction_
+or _feature engineering_. You should keep in mind, however, that no machine
+learning algorithm will be able to make a prediction on data for which
+it has no information. For example, if the only feature that you have
+for a patient is their last name, no algorithm will be able to predict
+their gender. This information is simply not contained in your data. If
+you add another feature that contains the patient's first name, you will have
+much better luck, as it is often possible to tell the gender by a
+person's first name.
+
+[[knowing-your-task-and-knowing-your-data]]
+==== Knowing Your Task and Knowing Your Data
+
+((("machine learning", "understanding your data")))((("data representation", "understanding your data")))Quite possibly the most important part in the machine learning process
+is understanding the data you are working with and how it relates to
+the task you want to solve. It will not be effective to randomly choose
+an algorithm and throw your data at it. It is necessary to understand
+what is going on in your dataset before you begin building a model. Each
+algorithm is different in terms of what kind of data and what problem setting
+it works best for. While you are building a machine learning solution,
+you should answer, or at least keep in mind, the following questions:
+
+* What question(s) am I trying to answer? Do I think the data collected
+can answer that question?
+* What is the best way to phrase my question(s) as a machine learning
+problem?
+* Have I collected enough data to represent the problem I want to solve?
+* What features of the data did I extract, and will these enable the
+right pass:[<span class="keep-together">predictions</span>]?
+* How will I measure success in my application?
+* How will the machine learning solution interact with other parts of
+my research or business product?
+
+In a larger context, the algorithms and methods in machine learning are
+only one part of a greater process to solve a particular problem, and it
+is good to keep the big picture in mind at all times. Many people spend
+a lot of time building complex machine learning solutions, only to find
+out they don't solve the right problem.
+
+When going deep into the technical aspects of machine learning (as we
+will in this book), it is easy to lose sight of the ultimate goals. While
+we will not discuss the questions listed here in detail, we still
+encourage you to keep in mind all the assumptions that you might be
+making, explicitly or implicitly, when you start building machine
+learning models.((("", startref="MLapp1")))
+
+[[why-python]]
+=== Why Python?
+
+((("machine learning", "benefits of Python for")))((("Python", "benefits of")))Python has become the lingua franca for many data science applications.
+It combines the power of general-purpose programming languages with the
+ease of use of domain-specific scripting languages like MATLAB or R.
+Python has libraries for data loading, visualization, statistics,
+natural language processing, image processing, and more. This vast
+toolbox provides data scientists with a large array of general- and
+special-purpose functionality. One of the main advantages of using
+Python is the ability to interact directly with the code, using a
+terminal or other tools like the Jupyter Notebook, which we'll look at shortly.
+Machine learning and data analysis are fundamentally iterative
+processes, in which the data drives the analysis. It is essential for
+these processes to have tools that allow quick iteration and easy
+interaction.
+
+As a general-purpose programming language, Python also allows for the
+creation of complex graphical user interfaces (GUIs) and web services, and for
+integration into existing systems.
+
+[[scikit-learn]]
+=== scikit-learn
+
++scikit-learn+ ((("machine learning", "scikit-learn and", id="MLscikit1")))((("scikit-learn", "benefits of")))is an open source project, meaning that it is
+free to use and distribute, and anyone can easily obtain the source code
+to see what is going on behind the scenes. The +scikit-learn+ project is
+constantly being developed and improved, and it has a very active user
+community. It contains a number of state-of-the-art machine learning
+algorithms, as well as comprehensive http://scikit-learn.org/stable/documentation[documentation] ((("scikit-learn", "documentation")))about each algorithm. +scikit-learn+
+is a very popular tool, and the most prominent Python library for
+machine learning. It is widely used in industry and academia, and a wealth of tutorials and code snippets are available
+online. +scikit-learn+ works well with a number of other scientific Python
+tools, which we will discuss later in this chapter.
+
+While reading this, we recommend that you also browse the +scikit-learn+
+http://scikit-learn.org/stable/user_guide.html[user guide] ((("scikit-learn", "user guide")))and API documentation for additional details on and many more
+options for each algorithm. The online documentation is very thorough,
+and this book will provide you with all the prerequisites in machine
+learning to understand it in detail.
+
+[[installing-scikit-learn]]
+==== Installing scikit-learn
+
++scikit-learn+ ((("scikit-learn", "installing")))((("Python", "prepackaged distributions")))depends on two other Python packages, _NumPy_ and _SciPy_. For
+plotting and interactive development, you should also install
++matplotlib+, IPython, and the Jupyter Notebook. We recommend using one of
+the following prepackaged Python distributions, which will provide the
+necessary packages:
+
+https://store.continuum.io/cshop/anaconda/[Anaconda]:: ((("Anaconda")))A Python
+distribution made for large-scale data processing, predictive analytics,
+and scientific computing. Anaconda comes with NumPy, SciPy, +matplotlib+, pass:[<span class="keep-together"><code>pandas</code></span>], 
+IPython, Jupyter Notebook, and +scikit-learn+. Available on
+Mac OS, Windows, and Linux, it is a very convenient solution
+and is the one we suggest for people without an existing installation of
+the scientific Python packages. Anaconda now also includes the commercial
+Intel MKL library for free. Using MKL (which is done automatically when Anaconda is installed) can give significant speed improvements for many
+algorithms in +scikit-learn+.
+
+https://www.enthought.com/products/canopy/[Enthought Canopy]:: ((("Enthought Canopy")))Another Python distribution for scientific computing. This comes with
+NumPy, SciPy, +matplotlib+, +pandas+, and IPython, but the free version does not
+come with +scikit-learn+. If you are part of an academic, degree-granting
+institution, you can request an academic license and get free access to
+the paid subscription version of Enthought Canopy. Enthought Canopy is
+available for Python 2.7.x, and works on Mac OS, Windows, and Linux.
+
+http://python-xy.github.io/[Python(x,y)]:: ((("Python","Python(x,y)")))A free Python
+distribution for scientific computing, specifically for Windows.
+Python(x,y) comes with NumPy, SciPy, +matplotlib+, +pandas+, IPython, and
++scikit-learn+.
+
+If you already have a Python installation set up, you can use +pip+ to
+install all of these packages:
+
+++++
+<pre data-type="programlisting">$ <strong>pip install numpy scipy matplotlib ipython scikit-learn pandas</strong></pre>
+++++
+
+[[essential-libraries-and-tools]]
+=== Essential Libraries and Tools
+
+((("scikit-learn", "libraries and tools", id="SKLlib1")))Understanding what +scikit-learn+ is and how to use it is important, but
+there are a few other libraries that will enhance your experience.
++scikit-learn+ is built on top of the NumPy and SciPy scientific Python
+libraries. In addition to NumPy and SciPy, we will be using +pandas+ and
++matplotlib+. We will also introduce the Jupyter Notebook, which is a
+browser-based interactive programming environment. Briefly, here is what
+you should know about these tools in order to get the most out of
++scikit-learn+.footnote:[If you are unfamiliar with NumPy or +matplotlib+, we recommend
+reading the first chapter of the http://www.scipy-lectures.org/[SciPy Lecture Notes].]
+
+[[jupyter-notebook]]
+==== Jupyter Notebook
+
+((("Jupyter Notebook")))The Jupyter Notebook is an interactive environment for running code in
+the browser. It is a great tool for exploratory data analysis and is
+widely used by data scientists. While the Jupyter Notebook supports many
+programming languages, we only need the Python support. The Jupyter
+Notebook makes it easy to incorporate code, text, and images, and all of
+this book was in fact written as a Jupyter Notebook. All of the code
+examples we include can be downloaded from https://github.com/amueller/introduction_to_ml_with_python[GitHub].
+
+[[numpy]]
+==== NumPy
+
+((("NumPy (Numeric Python) library")))NumPy is one of the fundamental packages for scientific computing in
+Python. It contains functionality for multidimensional arrays,
+high-level mathematical functions such as linear algebra operations and
+the Fourier transform, and pseudorandom number generators.
+
+In +scikit-learn+, the NumPy array is the fundamental data structure.
++scikit-learn+ takes in data in the form of NumPy arrays. Any data you're
+using will have to be converted to a NumPy array. The core functionality
+of NumPy is the `ndarray` class, a multidimensional (__n__-dimensional)
+array. All elements of the array must be of the same type. A NumPy array
+looks like this:
+
++*In[2]:*+
+[source, python]
+----
+import numpy as np
+
+x = np.array([[1, 2, 3], [4, 5, 6]])
+print("x:\n{}".format(x))
+----
+
++*Out[2]:*+
+----
+x:
+[[1 2 3]
+ [4 5 6]]
+----
+
+We will be using NumPy _a lot_ in this book, and we will refer to objects
+of the NumPy `ndarray` class as "NumPy arrays" or just "arrays."
+
+[[scipy]]
+==== SciPy
+
+((("SciPy")))SciPy is a collection of functions for scientific computing in Python.
+It provides, among other functionality, advanced linear algebra
+routines, mathematical function optimization, signal processing, special
+mathematical functions, and statistical distributions. +scikit-learn+ draws
+from SciPy's collection of functions for implementing its algorithms.
+The most important part of SciPy for us is `scipy.sparse`: this provides
+_sparse matrices_, which are another representation that is used for data
+in +scikit-learn+. Sparse matrices are used whenever we want to store a 2D
+array that contains mostly zeros:
+
++*In[3]:*+
+[source, python]
+----
+from scipy import sparse
+
+# Create a 2D NumPy array with a diagonal of ones, and zeros everywhere else
+eye = np.eye(4)
+print("NumPy array:\n{}".format(eye))
+----
+
++*Out[3]:*+
+----
+NumPy array:
+[[ 1.  0.  0.  0.]
+ [ 0.  1.  0.  0.]
+ [ 0.  0.  1.  0.]
+ [ 0.  0.  0.  1.]]
+----
+
++*In[4]:*+
+[source, python]
+----
+# Convert the NumPy array to a SciPy sparse matrix in CSR format
+# Only the nonzero entries are stored
+sparse_matrix = sparse.csr_matrix(eye)
+print("\nSciPy sparse CSR matrix:\n{}".format(sparse_matrix))
+----
+
++*Out[4]:*+
+----
+
+SciPy sparse CSR matrix:
+  (0, 0)    1.0
+  (1, 1)    1.0
+  (2, 2)    1.0
+  (3, 3)    1.0
+----
+
+Usually it is not possible to create dense representations of sparse
+data (as they would not fit into memory), so we need to create
+sparse representations directly. Here is a way to create the same sparse matrix
+as before, using the COO format:
+
++*In[5]:*+
+[source, python]
+----
+data = np.ones(4)
+row_indices = np.arange(4)
+col_indices = np.arange(4)
+eye_coo = sparse.coo_matrix((data, (row_indices, col_indices)))
+print("COO representation:\n{}".format(eye_coo))
+----
+
++*Out[5]:*+
+----
+COO representation:
+  (0, 0)    1.0
+  (1, 1)    1.0
+  (2, 2)    1.0
+  (3, 3)    1.0
+----
+
+More details on SciPy sparse matrices can be found in the http://www.scipy-lectures.org/[SciPy Lecture
+Notes].
+
+[[matplotlib]]
+==== matplotlib
+
++matplotlib+ ((("matplotlib")))is the primary scientific plotting library in Python. It
+provides functions for making publication-quality visualizations such as
+line charts, histograms, scatter plots, and so on. Visualizing your data
+and different aspects of your analysis can give you important insights, and we
+will be using +matplotlib+ for all our visualizations. When working inside
+the Jupyter Notebook, you can show figures directly in the browser by
+using the `%matplotlib notebook` and `%matplotlib inline` commands. We
+recommend using `%matplotlib notebook`, which provides an interactive
+environment (though we are using `%matplotlib inline` to produce this
+book). For example, this code produces the plot in <<fig0101>>:
+
++*In[6]:*+
+[source, python]
+----
+%matplotlib inline
+import matplotlib.pyplot as plt
+
+# Generate a sequence of numbers from -10 to 10 with 100 steps in between
+x = np.linspace(-10, 10, 100)
+# Create a second array using sine
+y = np.sin(x)
+# The plot function makes a line chart of one array against another
+plt.plot(x, y, marker="x")
+----
+
+[[fig0101]]
+.Simple line plot of the sine function using matplotlib
+image::images/malp_01in01.png[png]
+
+[[pandas]]
+==== pandas
+
++pandas+ ((("pandas", "benefits of")))is a Python library for data wrangling and analysis. It is built
+around a data structure called the `DataFrame` that is modeled after the R
++DataFrame+. Simply put, a +pandas+ `DataFrame` is a table, similar to an
+Excel spreadsheet. +pandas+ provides a great range of methods to modify
+and operate on this table; in particular, it allows SQL-like queries and
+joins of tables. In contrast to NumPy, which requires that all entries
+in an array be of the same type, +pandas+ allows each column to have a
+separate type (for example, integers, dates, floating-point numbers, and
+strings). Another valuable tool provided by +pandas+ is its ability to
+ingest from a great variety of file formats and databases, like SQL,
+Excel files, and comma-separated values (CSV) files. Going into detail
+about the functionality of +pandas+ is out of the scope of this book.
+However, pass:[<a class="orm:hideurl" href="http://shop.oreilly.com/product/0636920023784.do"><em>Python for Data Analysis</em></a>] by Wes McKinney (O'Reilly, 2012) provides a great
+guide. Here is a small example of creating a +DataFrame+ using a
+dictionary:
+
++*In[7]:*+
+[source, python]
+----
+import pandas as pd
+
+# create a simple dataset of people
+data = {'Name': ["John", "Anna", "Peter", "Linda"],
+        'Location' : ["New York", "Paris", "Berlin", "London"],
+        'Age' : [24, 13, 53, 33]
+       }
+
+data_pandas = pd.DataFrame(data)
+# IPython.display allows "pretty printing" of dataframes
+# in the Jupyter notebook
+display(data_pandas)
+----
+
+[role="pagebreak-before"]
+This produces the following output:
+
+[options="header"]
+|====
+||Age|Location|Name
+|0|24|New York|John
+|1|13|Paris|Anna
+|2|53|Berlin|Peter
+|3|33|London|Linda
+|====
+
+There are several possible ways to query this table. For example:
+
++*In[8]:*+
+[source, python]
+----
+# Select all rows that have an age column greater than 30
+display(data_pandas[data_pandas.Age > 30])
+----
+
+This produces the following result:
+
+[options="header"]
+|====
+||Age|Location|Name
+|2|53|Berlin|Peter
+|3|33|London|Linda
+|====
+
+[[mglearn]]
+==== mglearn
+
+((("mglearn")))This book comes with accompanying code, which you can find on https://github.com/amueller/introduction_to_ml_with_python[GitHub]. The
+accompanying code includes not only all the examples shown in
+this book, but also the +mglearn+ library. This is a library of utility
+functions we wrote for this book, so that we don't clutter up our code
+listings with details of plotting and data loading. If you're
+interested, you can look up all the functions in the repository, but the
+details of the +mglearn+ module are not really important to the material
+in this book. If you see a call to `mglearn` in the code, it is
+usually a way to make a pretty picture quickly, or to get our hands on
+some interesting data.((("", startref="SKLlib1")))
+
+[NOTE]
+=====================================================================
+Throughout the book we make ample use of NumPy, +matplotlib+ and +pandas+. All the code will assume the following imports:
+
+----
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+import mglearn
+----
+
+We also assume that you will run the code in a Jupyter Notebook with the +%matplotlib notebook+ or +%matplotlib inline+ magic enabled to show plots. If you are not using the notebook or these magic commands, you will have to call +plt.show+ to actually show any of the figures.
+=====================================================================
+
+
+
+[[python2-versus-python3]]
+=== Python 2 Versus Python 3
+
+((("scikit-learn", "Python 2 vs. Python 3")))((("Python", "Python 2 vs. Python 3")))There are two major versions of Python that are widely used at the
+moment: Python 2 (more precisely, 2.7) and Python 3 (with the latest
+release being 3.5 at the time of writing). This sometimes leads to some
+confusion. Python 2 is no longer actively developed, but because Python 3
+contains major changes, Python 2 code usually does not run on Python 3. If
+you are new to Python, or are starting a new project from scratch, we
+highly recommend using the latest version of Python 3 without changes. If
+you have a large codebase that you rely on that is written for Python 2,
+you are excused from upgrading for now. However, you should try to
+migrate to Python 3 as soon as possible. When writing any new code, it is for
+the most part quite easy to write code that runs under Python 2 and
+Python 3.footnote:[The https://pypi.python.org/pypi/six[`six` package] can be very handy for that.] If you
+don't have to interface with legacy software, you should definitely use
+Python 3. All the code in this book is written in a way that works for
+both versions. However, the exact output might differ slightly under
+Python 2.
+
+[[versions-used-in-this-book]]
+=== Versions Used in this Book
+
+((("scikit-learn", "versions used")))We are using the following versions of the previously mentioned libraries in this book:
+
++*In[9]:*+
+[source, python]
+----
+import sys
+print("Python version: {}".format(sys.version))
+
+import pandas as pd
+print("pandas version: {}".format(pd.__version__))
+
+import matplotlib
+print("matplotlib version: {}".format(matplotlib.__version__))
+
+import numpy as np
+print("NumPy version: {}".format(np.__version__))
+
+import scipy as sp
+print("SciPy version: {}".format(sp.__version__))
+
+import IPython
+print("IPython version: {}".format(IPython.__version__))
+
+import sklearn
+print("scikit-learn version: {}".format(sklearn.__version__))
+----
+
+[role="pagebreak-before"]
++*Out[9]:*+
+----
+Python version: 3.5.2 |Anaconda 4.1.1 (64-bit)| (default, Jul  2 2016, 17:53:06) 
+[GCC 4.4.7 20120313 (Red Hat 4.4.7-1)]
+pandas version: 0.18.1
+matplotlib version: 1.5.1
+NumPy version: 1.11.1
+SciPy version: 0.17.1
+IPython version: 5.1.0
+scikit-learn version: 0.18
+----
+
+While it is not important to match these versions exactly, you should
+have a version of +scikit-learn+ that is as least as recent as the one we
+used.
+
+Now that we have everything set up, let's dive into our first application
+of machine learning.((("", startref="MLscikit1")))
+
+[WARNING]
+=====================================================================
+This book assumes that you have version 0.18 or later of scikit-learn. The +model_selection+ module was added in 0.18, and if you use an earlier version of scikit-learn, you will need to adjust the imports from this module.
+=====================================================================
+
+[[a-first-application-classifying-iris-species]]
+=== A First Application: Classifying Iris Species
+
+((("machine learning", "examples of", id="MLfirst1")))((("models", "iris classification application", id="Mclass1")))((("iris classification application", "goals for")))In this section, we will go through a simple machine learning
+application and create our first model. In the process, we will
+introduce some core concepts and terms.
+
+Let's assume that a hobby botanist is interested in distinguishing the
+species of some iris flowers that she has found. She has collected some
+measurements associated with each iris: the length and width of the
+petals and the length and width of the sepals, all measured in
+centimeters (see <<fig0102>>).
+
+She also has the measurements of some irises that have been previously
+identified by an expert botanist as belonging to the species _setosa_,
+_versicolor_, or _virginica_. For these measurements, she can be certain of
+which species each iris belongs to. Let's assume that these are the only
+species our hobby botanist will encounter in the wild.
+
+Our goal is to build a machine learning model that can learn from the
+measurements of these irises whose species is known, so that we can
+predict the species for a new iris.
+
+[[fig0102]]
+.Parts of the iris flower
+image::images/malp_01in02.png[sepal_petal]
+
+((("classification problems", "iris classification example")))Because we have measurements for which we know the correct species of
+iris, this is a supervised learning problem. In this problem, we want to
+predict one of several options (the species of iris). This is an example
+of a _classification_ problem. The possible outputs (different species
+of irises) are called _classes_. Every iris in the dataset belongs
+to one of three classes, so this problem is a three-class classification
+problem.
+
+The desired output for a single data point (an iris) is the species of
+this flower. For a particular data point, the species it belongs to is
+called its _label_.
+
+[[meet-the-data]]
+==== Meet the Data
+
+((("iris classification application", "dataset for")))((("scikit-learn classes and functions", "load_iris")))The data we will use for this example is the Iris dataset, a classical
+dataset in machine learning and statistics. It is included in
++scikit-learn+ in the +datasets+ module. We can load it by calling the
+`load_iris` function:
+
++*In[10]:*+
+[source, python]
+----
+from sklearn.datasets import load_iris
+iris_dataset = load_iris()
+----
+
+The +iris+ object that is returned by `load_iris` is a +Bunch+ object,
+which is very similar to a dictionary. It contains keys and values:
+
++*In[11]:*+
+[source, python]
+----
+print("Keys of iris_dataset: \n{}".format(iris_dataset.keys()))
+----
+
++*Out[11]:*+
+----
+Keys of iris_dataset: 
+dict_keys(['target_names', 'feature_names', 'DESCR', 'data', 'target'])
+----
+
+The value of the key `DESCR` is a short description of the dataset. We
+show the beginning of the description here (feel free to look up the
+rest yourself):
+
++*In[12]:*+
+[source, python]
+----
+print(iris_dataset['DESCR'][:193] + "\n...")
+----
+
++*Out[12]:*+
+++++
+<pre data-type="programlisting">
+Iris Plants Database
+====================
+
+Notes
+----
+Data Set Characteristics:
+    :Number of Instances: 150 (50 in each of three classes)
+    :Number of Attributes: 4 numeric, predictive att
+...
+----</pre>
+++++
+
+The value of the key `target_names` is an array of strings, containing the
+species of flower that we want to predict:
+
++*In[13]:*+
+[source, python]
+----
+print("Target names: {}".format(iris_dataset['target_names']))
+----
+
++*Out[13]:*+
+----
+Target names: ['setosa' 'versicolor' 'virginica']
+----
+
+The value of `feature_names` is a list of strings, giving the description of
+each feature:
+
++*In[14]:*+
+[source, python]
+----
+print("Feature names: \n{}".format(iris_dataset['feature_names']))
+----
+
++*Out[14]:*+
+----
+Feature names: 
+['sepal length (cm)', 'sepal width (cm)', 'petal length (cm)', 
+ 'petal width (cm)']
+----
+
+The data itself is contained in the `target` and `data` fields. `data` contains the numeric measurements of sepal length, sepal width,
+petal length, and petal width in a NumPy array:
+
++*In[15]:*+
+[source, python]
+----
+print("Type of data: {}".format(type(iris_dataset['data'])))
+----
+
++*Out[15]:*+
+----
+Type of data: <class 'numpy.ndarray'>
+----
+
+The rows in the +data+ array correspond to flowers, while the columns
+represent the four measurements that were taken for each flower:
+
++*In[16]:*+
+[source, python]
+----
+print("Shape of data: {}".format(iris_dataset['data'].shape))
+----
+
++*Out[16]:*+
+----
+Shape of data: (150, 4)
+----
+
+((("shapes, defined")))We see that the array contains measurements for 150 different flowers.
+Remember that the individual items are called _samples_ in machine
+learning, and their properties are called _features_. The _shape_ of the
++data+ array is the number of samples multiplied by the number of features. This
+is a convention in +scikit-learn+, and your data will always be assumed to
+be in this shape. Here are the feature values for the first five
+samples:
+
++*In[17]:*+
+[source, python]
+----
+print("First five columns of data:\n{}".format(iris_dataset['data'][:5]))
+----
+
++*Out[17]:*+
+----
+First five columns of data:
+[[ 5.1  3.5  1.4  0.2]
+ [ 4.9  3.   1.4  0.2]
+ [ 4.7  3.2  1.3  0.2]
+ [ 4.6  3.1  1.5  0.2]
+ [ 5.   3.6  1.4  0.2]]
+----
+
+From this data, we can see that all of the first five flowers have a
+petal width of 0.2 cm and that the first flower has the longest
+sepal, at 5.1 cm.
+
+The `target` array contains the species of each of the flowers that were
+measured, also as a NumPy array:
+
++*In[18]:*+
+[source, python]
+----
+print("Type of target: {}".format(type(iris_dataset['target'])))
+----
+
++*Out[18]:*+
+----
+Type of target: <class 'numpy.ndarray'>
+----
+
++target+ is a one-dimensional array, with one entry per flower:
+
++*In[19]:*+
+[source, python]
+----
+print("Shape of target: {}".format(iris_dataset['target'].shape))
+----
+
++*Out[19]:*+
+----
+Shape of target: (150,)
+----
+
+The species are encoded as integers from 0 to 2:
+
++*In[20]:*+
+[source, python]
+----
+print("Target:\n{}".format(iris_dataset['target']))
+----
+
++*Out[20]:*+
+----
+Target:
+[0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+ 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+ 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 2
+ 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2
+ 2 2]
+----
+
+The meanings of the numbers are given by the `iris['target_names']`
+array: pass:[<span class="keep-together">0 means</span>] _setosa_, 1 means _versicolor_, and 2 means _virginica_.
+
+[[measuring-success-training-and-testing-data]]
+==== Measuring Success: Training and Testing Data
+
+((("iris classification application", "training and testing data")))We want to build a machine learning model from this data that can
+predict the species of iris for a new set of measurements. But before we can
+apply our model to new measurements, we need to know whether it actually works—that is, whether we should trust its predictions.
+
+((("generalization", "defined")))Unfortunately, we cannot use the data we used to build the model to
+evaluate it. This is because our model can always simply remember the
+whole training set, and will therefore always predict the correct label
+for any point in the training set. This "remembering" does not indicate
+to us whether our model will _generalize_ well (in other words, whether
+it will also perform well on new data).
+
+((("training data")))((("test data/test sets", "defined")))((("hold-out sets")))To assess the model's performance, we show it new data (data that it
+hasn't seen before) for which we have labels. This is usually done by
+splitting the labeled data we have collected (here, our 150 flower
+measurements) into two parts. One part of the data is used to build our
+machine learning model, and is called the _training data_ or _training
+set_. The rest of the data will be used to assess how well the model
+works; this is called the _test data_, _test set_, or _hold-out set_.
+
++scikit-learn+ ((("scikit-learn classes and functions", "train_test_split", id="SLCFtrain")))contains a function that shuffles the dataset and splits it
+for you: the `train_test_split` function. This function extracts 75% of
+the rows in the data as the training set, together with the
+corresponding labels for this data. The remaining 25% of the data,
+together with the remaining labels, is declared as the test set. Deciding how much data you want to put into the training and the test set
+respectively is somewhat arbitrary, but using a test set containing 25%
+of the data is a good rule of thumb.
+
+((("f(x)=y formula")))((("scikit-learn", "data and labels in")))In +scikit-learn+, data is usually denoted with a capital `X`, while
+labels are denoted by a lowercase `y`. This is inspired by the standard
+formulation __f(x)=y__ in mathematics, where __x__
+is the input to a function and __y__ is the output. Following
+more conventions from mathematics, we use a capital `X` because the data
+is a two-dimensional array (a matrix) and a lowercase `y`
+because the target is a one-dimensional array (a vector).
+
+Let's call `train_test_split` on our data and assign the outputs using
+this nomenclature:
+
++*In[21]:*+
+[source, python]
+----
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(
+    iris_dataset['data'], iris_dataset['target'], random_state=0)
+----
+
+((("pseudorandom number generators")))Before making the split, the `train_test_split` function shuffles the
+dataset using a pseudorandom number generator. If we just took the last 25%
+of the data as a test set, all the data points would have the label `2`,
+as the data points are sorted by the label (see the output for
+`iris['target']` shown earlier). Using a test set containing only one of the
+three classes would not tell us much about how well our model generalizes, so we
+shuffle our data to make sure the test data contains data from all
+classes.
+
+((("random_state parameter")))((("scikit-learn", "random_state parameter")))To make sure that we will get the same output if we run the same
+function several times, we provide the pseudorandom number generator
+with a fixed seed using the `random_state` parameter. This will make the
+outcome deterministic, so this line will always have the same outcome.
+We will always fix the `random_state` in this way when using randomized
+procedures in this book.
+
+The output of the `train_test_split` function is `X_train`, `X_test`,
+`y_train`, and `y_test`, which are all NumPy arrays. `X_train` contains
+75% of the rows of the dataset, and `X_test` contains the remaining 25%:
+
++*In[22]:*+
+[source, python]
+----
+print("X_train shape: {}".format(X_train.shape))
+print("y_train shape: {}".format(y_train.shape))
+----
+
++*Out[22]:*+
+----
+X_train shape: (112, 4)
+y_train shape: (112,)
+----
+
+[role="pagebreak-before"]
++*In[23]:*+
+[source, python]
+----
+print("X_test shape: {}".format(X_test.shape))
+print("y_test shape: {}".format(y_test.shape))
+----
+
++*Out[23]:*+
+----
+X_test shape: (38, 4)
+y_test shape: (38,)
+----
+
+[[first-things-first-look-at-your-data]]
+==== First Things First: Look at Your Data
+
+((("iris classification application", "data inspection")))((("", startref="SLCFtrain")))Before building a machine learning model it is often a good idea to
+inspect the data, to see if the task is easily solvable without machine
+learning, or if the desired information might not be contained in the
+data.
+
+Additionally, inspecting your data is a good way to find abnormalities
+and peculiarities. Maybe some of your irises were measured using inches
+and not centimeters, for example. In the real world, inconsistencies in
+the data and unexpected measurements are very common.
+
+((("scatter plots")))((("pair plots")))One of the best ways to inspect data is to visualize it. One way to do
+this is by using a _scatter plot_. A scatter plot of the data puts one
+feature along the x-axis and another along the y-axis, and draws a
+dot for each data point. Unfortunately, computer screens have only two
+dimensions, which allows us to plot only two (or maybe three) features
+at a time. It is difficult to plot datasets with more than three
+features this way. One way around this problem is to do a _pair plot_,
+which looks at all possible pairs of features. If you have a small number of
+features, such as the four we have here, this is quite reasonable. You
+should keep in mind, however, that a pair plot does not show the interaction of
+all of features at once, so some interesting aspects of the data may not
+be revealed when visualizing it this way.
+
+<<iris_pairplot>> is a pair plot of the features in the training set. The data points
+are colored according to the species the iris belongs to. To create the
+plot, we first convert the NumPy array into a +pandas+ +DataFrame+. +pandas+
+has a function to create pair plots called `scatter_matrix`. The diagonal
+of this matrix is filled with histograms of each feature:
+
++*In[24]:*+
+[source, python]
+----
+# create dataframe from data in X_train
+# label the columns using the strings in iris_dataset.feature_names
+iris_dataframe = pd.DataFrame(X_train, columns=iris_dataset.feature_names)
+# create a scatter matrix from the dataframe, color by y_train
+grr = pd.scatter_matrix(iris_dataframe, c=y_train, figsize=(15, 15), marker='o',
+                        hist_kwds={'bins': 20}, s=60, alpha=.8, cmap=mglearn.cm3)
+----
+
+[[iris_pairplot]]
+.Pair plot of the Iris dataset, colored by class label
+image::images/malp_0101.png[png]
+
+From the plots, we can see that the three classes seem to be relatively
+well separated using the sepal and petal measurements. This means that a
+machine learning model will likely be able to learn to separate them.
+
+[[building-your-first-model-k-nearest-neighbors]]
+==== Building Your First Model: k-Nearest Neighbors
+
+((("iris classification application", "k-nearest neighbors")))((("k-nearest neighbors (k-NN)", "building")))Now we can start building the actual machine learning model. There are
+many classification algorithms in +scikit-learn+ that we could use. Here
+we will use a __k__-nearest neighbors classifier, which is easy to
+understand. Building this model only consists of storing the training
+set. To make a prediction for a new data point, the algorithm finds the
+point in the training set that is closest to the new point. Then it assigns the label of this training point to the new data
+point.
+
+The _k_ in __k__-nearest neighbors signifies that instead of
+using only the closest neighbor to the new data point, we can consider
+any fixed number _k_ of neighbors in the training (for example, the
+closest three or five neighbors). Then, we can make a prediction using
+the majority class among these neighbors. We will go into more detail
+about this in <<supervised-learning>>; for now, we'll use only a single neighbor.
+
+((("estimators")))((("scikit-learn classes and functions", "Estimator")))((("scikit-learn classes and functions", "KNeighborsClassifier", id="SLCFkn1")))((("classifiers", "KNeighborsClassifier", id="Ckn1")))All machine learning models in +scikit-learn+ are implemented in their own
+classes, which are called `Estimator` classes. The __k__-nearest neighbors
+classification algorithm is implemented in the `KNeighborsClassifier`
+class in the `neighbors` module. Before we can use the model, we need to
+instantiate the class into an object. This is when we will set any
+parameters of the model. The most important parameter of `KNeighborsClassifier` is the number of neighbors, which we will set to
+1:
+
++*In[25]:*+
+[source, python]
+----
+from sklearn.neighbors import KNeighborsClassifier
+knn = KNeighborsClassifier(n_neighbors=1)
+----
+
+((("knn object")))((("fit method")))((("scikit-learn", "knn object")))((("scikit-learn", "fit method")))The `knn` object encapsulates the algorithm that will be used to build
+the model from the training data, as well the algorithm to make
+predictions on new data points. It will also hold the information that
+the algorithm has extracted from the training data. In the case of
+`KNeighborsClassifier`, it will just store the training set.
+
+To build the model on the training set, we call the `fit` method of the
+`knn` object, which takes as arguments the NumPy array `X_train`
+containing the training data and the NumPy array `y_train` of the
+corresponding training labels:
+
++*In[26]:*+
+[source, python]
+----
+knn.fit(X_train, y_train)
+----
+
++*Out[26]:*+
+----
+KNeighborsClassifier(algorithm='auto', leaf_size=30, metric='minkowski',
+           metric_params=None, n_jobs=1, n_neighbors=1, p=2,
+           weights='uniform')
+----
+
+The `fit` method returns the `knn` object itself (and modifies it in
+place), so we get a string representation of our classifier. The
+representation shows us which parameters were used in creating the
+model. Nearly all of them are the default values, but you can also find
+`n_neighbors=1`, which is the parameter that we passed. Most models in
++scikit-learn+ have many parameters, but the majority of them are either
+speed optimizations or for very special use cases. You don't have to worry about
+the other parameters shown in this representation. Printing a
++scikit-learn+ model can yield very long strings, but don't be intimidated
+by these. We will cover all the important parameters in <<supervised-learning>>. In the remainder of this book, we will not show the output of `fit` because it doesn't contain any new information.
+
+[[making-predictions]]
+==== Making Predictions
+
+((("iris classification application", "making predictions")))((("predict method")))((("scikit-learn", "predict method")))We can now make predictions using this model on new data for which we
+might not know the correct labels. Imagine we found an iris in the wild
+with a sepal length of pass:[<span class="keep-together">5 cm</span>], a sepal width of 2.9 cm, a petal length of
+1 cm, and a petal width of 0.2 cm. What species of iris would this be? We
+can put this data into a NumPy array, again by calculating the shape—that is, the number of samples (1) multiplied by the number of features (4):
+
++*In[27]:*+
+[source, python]
+----
+X_new = np.array([[5, 2.9, 1, 0.2]])
+print("X_new.shape: {}".format(X_new.shape))
+----
+
++*Out[27]:*+
+----
+X_new.shape: (1, 4)
+----
+
+Note that we made the measurements of this single flower into a row in a
+two-dimensional NumPy array, as +scikit-learn+ always expects
+two-dimensional arrays for the data.
+
+To make a prediction, we call the `predict` method of the `knn` object:
+
++*In[28]:*+
+[source, python]
+----
+prediction = knn.predict(X_new)
+print("Prediction: {}".format(prediction))
+print("Predicted target name: {}".format(
+       iris_dataset['target_names'][prediction]))
+----
+
++*Out[28]:*+
+----
+Prediction: [0]
+Predicted target name: ['setosa']
+----
+
+Our model predicts that this new iris belongs to the class 0, meaning
+its species is _setosa_. But how do we know whether we can trust our
+model? We don't know the correct species of this sample, which is the
+whole point of building the model!
+
+[[evaluating-the-model]]
+==== Evaluating the Model
+
+((("iris classification application", "model evaluation")))This is where the test set that we created earlier comes in. This data
+was not used to build the model, but we do know what the correct species is for each iris in the test set.
+
+((("accuracy")))Therefore, we can make a prediction for each iris in the test data and compare it
+against its label (the known species). We can measure how well the model
+works by computing the _accuracy_, which is the fraction of flowers for
+which the right species was predicted:
+
++*In[29]:*+
+[source, python]
+----
+y_pred = knn.predict(X_test)
+print("Test set predictions:\n {}".format(y_pred))
+----
+
++*Out[29]:*+
+----
+Test set predictions:
+ [2 1 0 2 0 2 0 1 1 1 2 1 1 1 1 0 1 1 0 0 2 1 0 0 2 0 0 1 1 0 2 1 0 2 2 1 0 2]
+----
+
++*In[30]:*+
+[source, python]
+----
+print("Test set score: {:.2f}".format(np.mean(y_pred == y_test)))
+----
+
++*Out[30]:*+
+----
+Test set score: 0.97
+----
+
+((("score method")))((("scikit-learn", "score method")))We can also use the `score` method of the `knn` object, which will
+compute the test set accuracy for us:
+
++*In[31]:*+
+[source, python]
+----
+print("Test set score: {:.2f}".format(knn.score(X_test, y_test)))
+----
+
++*Out[31]:*+
+----
+Test set score: 0.97
+----
+
+For this model, the test set accuracy is about 0.97, which means we made
+the right prediction for 97% of the irises in the test set. Under some
+mathematical assumptions, this means that we can expect our model to be
+correct 97% of the time for new irises. For our hobby botanist
+application, this high level of accuracy means that our model may be
+trustworthy enough to use. In later chapters we will discuss how we can
+improve performance, and what caveats there are in tuning a model.((("", startref="MLfirst1")))((("", startref="Mclass1")))
+
+[[summary]]
+=== Summary and Outlook
+
+((("iris classification application", "overview of")))Let's summarize what we learned in this chapter. We started with a brief introduction to machine learning and its applications, then discussed the distinction between supervised and unsupervised learning and gave an overview of the tools we'll be using in this book. Then, we formulated the task of predicting which species of iris a particular
+flower belongs to by using physical measurements of the flower. We used
+a dataset of measurements that was annotated by an expert with the
+correct species to build our model, making this a supervised learning
+task. There were three possible species, _setosa_, _versicolor_, or
+_virginica_, which made the task a three-class classification problem.
+The possible species are called _classes_ in the classification problem,
+and the species of a single iris is called its _label_.
+
+The Iris dataset consists of two NumPy arrays: one containing the data, which
+is referred to as `X` in +scikit-learn+, and one containing the correct or
+desired outputs, which is called `y`. The array `X` is a two-dimensional
+array of features, with one row per data point and one column per
+feature. The array `y` is a one-dimensional array, which here contains
+one class label, an integer ranging from 0 to 2, for each of the samples.
+
+We split our dataset into a _training set_, to build our model, and a
+_test set_, to evaluate how well our model will generalize to new,
+previously unseen data.
+
+We chose the __k__-nearest neighbors classification algorithm, which makes
+predictions for a new data point by considering its closest neighbor(s)
+in the training set. This is implemented in the
+`KNeighborsClassifier` class, which contains the algorithm that builds
+the model as well as the algorithm that makes a prediction using the
+model. We instantiated the class, setting parameters. Then we built the
+model by calling the `fit` method, passing the training data (`X_train`)
+and training outputs (`y_train`) as parameters. We evaluated the model
+using the `score` method, which computes the accuracy of the model. We
+applied the `score` method to the test set data and the test set labels
+and found that our model is about 97% accurate, meaning it is correct
+97% of the time on the test set.((("", startref="SLCFkn1")))((("", startref="Ckn1")))
+
+This gave us the confidence to apply the model to new data (in our
+example, new flower measurements) and trust that the model will be
+correct about 97% of the time.
+
+((("algorithms", "minimal code to apply to algorithm")))((("scikit-learn", "core code for")))Here is a summary of the code needed for the whole training and
+evaluation pass:[<span class="keep-together">procedure</span>]:
+
++*In[32]:*+
+[source, python]
+----
+X_train, X_test, y_train, y_test = train_test_split(
+    iris_dataset['data'], iris_dataset['target'], random_state=0)
+
+knn = KNeighborsClassifier(n_neighbors=1)
+knn.fit(X_train, y_train)
+
+print("Test set score: {:.2f}".format(knn.score(X_test, y_test)))
+----
+
++*Out[32]:*+
+----
+Test set score: 0.97
+----
+
+This snippet contains the core code for applying any machine learning
+algorithm using +scikit-learn+. The `fit`, `predict`, and `score` methods
+are the common interface to supervised models in +scikit-learn+, and with
+the concepts introduced in this chapter, you can apply these models to
+many machine learning tasks. In the next chapter, we will go into more
+depth about the different kinds of supervised models in +scikit-learn+
+and how to apply them successfully.

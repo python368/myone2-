@@ -1,0 +1,852 @@
+[[algorithm-chains-and-pipelines]]
+== Algorithm Chains and Pipelines
+
+((("pipelines", see="algorithm chains and pipelines")))((("machine learning", "algorithm chains and pipelines", id="MLalg6")))((("algorithm chains and pipelines", id="algch6")))((("chaining", see="algorithm chains and pipelines")))((("algorithm chains and pipelines", "importance of")))((("scikit-learn classes and functions", "GridSearchCV", id="SLCFgridsearch6a")))((("scikit-learn classes and functions", "Pipeline", id="SLCFpipeline6a")))For many machine learning algorithms, the particular representation of
+the data that you provide is very important, as we discussed in <<representing-data-and-engineering-features>>. This starts with scaling the data and combining features by hand and
+goes all the way to learning features using unsupervised machine
+learning, as we saw in <<unsupervised-learning-and-preprocessing>>. Consequently, most machine learning
+applications require not only the application of a single algorithm, but
+the chaining together of many different processing steps and machine
+learning models. In this chapter, we will cover how to use the `Pipeline`
+class to simplify the process of building chains of transformations and
+models. In particular, we will see how we can combine `Pipeline` and
+`GridSearchCV` to search over parameters for all processing steps at
+once.
+
+((("scikit-learn classes and functions", "load_breast_cancer")))((("scikit-learn classes and functions", "SVC", id="SLCFsvc6a")))((("classifiers", "SVC", id="Csvc6a")))As an example of the importance of chaining models, we noticed that we
+can greatly improve the performance of a kernel SVM on the `cancer`
+dataset by using the `MinMaxScaler` for preprocessing. Here's code for
+splitting the data, computing the minimum and maximum, scaling the data, and
+training the SVM:
+
++*In[1]:*+
+[source, python]
+----
+from sklearn.svm import SVC
+from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler
+
+# load and split the data
+cancer = load_breast_cancer()
+X_train, X_test, y_train, y_test = train_test_split(
+    cancer.data, cancer.target, random_state=0)
+
+# compute minimum and maximum on the training data
+scaler = MinMaxScaler().fit(X_train)
+----
+
++*In[2]:*+
+[source, python]
+----
+# rescale the training data
+X_train_scaled = scaler.transform(X_train)
+
+svm = SVC()
+# learn an SVM on the scaled training data
+svm.fit(X_train_scaled, y_train)
+# scale the test data and score the scaled data
+X_test_scaled = scaler.transform(X_test)
+print("Test score: {:.2f}".format(svm.score(X_test_scaled, y_test)))
+----
+
++*Out[2]:*+
+----
+Test score: 0.95
+----
+
+[[parameter-selection-with-preprocessing]]
+=== Parameter Selection with Preprocessing
+
+((("algorithm chains and pipelines", "parameter selection with preprocessing")))((("preprocessing", "parameter selection with")))Now let's say we want to find better parameters for `SVC` using
+`GridSearchCV`, as discussed in <<model-evaluation-and-improvement>>. How should we go about doing
+this? A naive approach might look like this:
+
++*In[3]:*+
+[source, python]
+----
+from sklearn.model_selection import GridSearchCV
+# for illustration purposes only, don't use this code!
+param_grid = {'C': [0.001, 0.01, 0.1, 1, 10, 100],
+              'gamma': [0.001, 0.01, 0.1, 1, 10, 100]}
+grid = GridSearchCV(SVC(), param_grid=param_grid, cv=5)
+grid.fit(X_train_scaled, y_train)
+print("Best cross-validation accuracy: {:.2f}".format(grid.best_score_))
+print("Best set score: {:.2f}".format(grid.score(X_test_scaled, y_test)))
+print("Best parameters: ", grid.best_params_)
+----
+
++*Out[3]:*+
+----
+Best cross-validation accuracy: 0.98
+Best set score: 0.97
+Best parameters:  {'gamma': 1, 'C': 1}
+----
+
+Here, we ran the grid search over the parameters of `SVC` using the
+scaled data. However, there is a subtle catch in what we just did. When
+scaling the data, we used _all the data in the training set_ to find out how
+to train it. We then use the _scaled training data_ to run our
+grid search using cross-validation. For each split in the
+cross-validation, some part of the original training set will be
+declared the training part of the split, and some the test part of the
+split. The test part is used to measure what new data will look like to
+a model trained on the training part. However, we already used the
+information contained in the test part of the split, when scaling the
+data. Remember that the test part in each split in the cross-validation
+is part of the training set, and we used the information from the entire
+training set to find the right scaling of the data. _This is
+fundamentally different from how new data looks to the model._ If we
+observe new data (say, in form of our test set), this data will not have
+been used to scale the training data, and it might have a different
+minimum and maximum than the training data. The following example (<<improper_preprocessing>>) shows
+how the data processing during cross-validation and the final evaluation
+differ:
+
++*In[4]:*+
+[source, python]
+----
+mglearn.plots.plot_improper_processing()
+----
+
+[[improper_preprocessing]]
+.Data usage when preprocessing outside the cross-validation loop
+image::images/malp_0601.png[png]
+
+So, the splits in the cross-validation no longer correctly mirror how new
+data will look to the modeling process. We already leaked information
+from these parts of the data into our modeling process. This will lead
+to overly optimistic results during cross-validation, and possibly the
+selection of suboptimal parameters.
+
+To get around this problem, the splitting of the dataset during
+cross-validation should be done _before doing any preprocessing_. Any
+process that extracts knowledge from the dataset should only ever be
+applied to the training portion of the dataset, so any cross-validation
+should be the "outermost loop" in your processing.
+
+((("cross_val_score function")))((("scikit-learn classes and functions", "cross_val_score")))To achieve this in +scikit-learn+ with the `cross_val_score` function and
+the `GridSearchCV` function, we can use the `Pipeline` class. The
+`Pipeline` class is a class that allows "gluing" together multiple
+processing steps into a single +scikit-learn+ estimator. The `Pipeline`
+class itself has `fit`, `predict`, and `score` methods and behaves just
+like any other model in +scikit-learn+. The most common use case of the
++Pipeline+ class is in chaining preprocessing steps (like scaling of the
+data) together with a supervised model like a classifier.
+
+[[building-pipelines]]
+=== Building Pipelines
+
+((("algorithm chains and pipelines", "building pipelines")))((("scikit-learn classes and functions", "MinMaxScaler")))((("algorithms", "scaling", "MinMaxScaler")))Let's look at how we can use the `Pipeline` class to express the
+workflow for training an SVM after scaling the data with `MinMaxScaler` (for
+now without the grid search). First, we build a pipeline object by
+providing it with a list of steps. Each step is a tuple containing a
+name (any string of your choosingfootnote:[With one exception: the
+name can't contain a double underscore, `__`.]) and an instance of an
+estimator:
+
++*In[5]:*+
+[source, python]
+----
+from sklearn.pipeline import Pipeline
+pipe = Pipeline([("scaler", MinMaxScaler()), ("svm", SVC())])
+----
+
+Here, we created two steps: the first, called `"scaler"`, is an instance of
+`MinMaxScaler`, and the second, called `"svm"`, is an instance of `SVC`. Now, we can fit
+the pipeline, like any other +scikit-learn+ estimator:
+
++*In[6]:*+
+[source, python]
+----
+pipe.fit(X_train, y_train)
+----
+
+Here, `pipe.fit` first calls +fit+ on the first step (the scaler), then
+transforms the training data using the scaler, and finally fits the SVM
+with the scaled data. To evaluate on the test data, we simply call
+`pipe.score`:
+
++*In[7]:*+
+[source, python]
+----
+print("Test score: {:.2f}".format(pipe.score(X_test, y_test)))
+----
+
++*Out[7]:*+
+----
+Test score: 0.95
+----
+
+((("score method")))Calling the `score` method on the pipeline first transforms the test
+data using the scaler, and then calls the `score` method on the SVM
+using the scaled test data. As you can see, the result is identical to
+the one we got from the code at the beginning of the chapter, when doing the transformations by hand.
+Using the pipeline, we reduced the code needed for our "preprocessing + classification" process. The main benefit of using the pipeline,
+however, is that we can now use this single estimator in
+`cross_val_score` or `GridSearchCV`.
+
+[[using-pipelines-in-grid-searches]]
+=== Using Pipelines in Grid Searches
+
+((("algorithm chains and pipelines", "using pipelines in grid searches", id="ACpipegrid6")))((("grid search", "using pipelines in", id="GSpipe6")))Using a pipeline in a grid search works the same way as using any other
+estimator. We define a parameter grid to search over, and construct a
+`GridSearchCV` from the pipeline and the parameter grid. When specifying
+the parameter grid, there is a slight change, though. We need to specify
+for each parameter which step of the pipeline it belongs to. Both
+parameters that we want to adjust, `C` and `gamma`, are parameters of
+`SVC`, the second step. We gave this step the name `"svm"`. The syntax
+to define a parameter grid for a pipeline is to specify for each
+parameter the step name, followed by `__` (a double underscore),
+followed by the parameter name. To search over the `C` parameter of `SVC` we therefore have to use `"svm__C"` as the key in the parameter
+grid dictionary, and similarly for `gamma`:
+
++*In[8]:*+
+[source, python]
+----
+param_grid = {'svm__C': [0.001, 0.01, 0.1, 1, 10, 100],
+              'svm__gamma': [0.001, 0.01, 0.1, 1, 10, 100]}
+----
+
+((("", startref="Csvc6a")))((("", startref="SLCFsvc6a")))With this parameter grid we can use `GridSearchCV` as usual:
+
++*In[9]:*+
+[source, python]
+----
+grid = GridSearchCV(pipe, param_grid=param_grid, cv=5)
+grid.fit(X_train, y_train)
+print("Best cross-validation accuracy: {:.2f}".format(grid.best_score_))
+print("Test set score: {:.2f}".format(grid.score(X_test, y_test)))
+print("Best parameters: {}".format(grid.best_params_))
+----
+
++*Out[9]:*+
+----
+Best cross-validation accuracy: 0.98
+Test set score: 0.97
+Best parameters: {'svm__C': 1, 'svm__gamma': 1}
+----
+
+((("", startref="SLCFgridsearch6a")))((("scikit-learn classes and functions", "MinMaxScaler")))In contrast to the grid search we did before, now for each split in the
+cross-validation, the `MinMaxScaler` is refit with only the training
+splits and no information is leaked from the test split into the parameter
+search. Compare this (<<data_usage_inside_cv_loop_using_pipeline>>) with
+<<improper_preprocessing>> earlier in this chapter:
+
++*In[10]:*+
+[source, python]
+----
+mglearn.plots.plot_proper_processing()
+----
+
+[[data_usage_inside_cv_loop_using_pipeline]]
+.Data usage when preprocessing inside the cross-validation loop with a pass:[<span class="keep-together">pipeline</span>]
+image::images/malp_06in01.png[png]
+
+((("information leakage")))((("leakage")))The impact of leaking information in the cross-validation varies
+depending on the nature of the preprocessing step. Estimating the scale
+of the data using the test fold usually doesn't have a terrible impact,
+while using the test fold in feature extraction and feature selection
+can lead to substantial differences in outcomes.
+
+.Illustrating Information Leakage
+****
+A great example of leaking information in cross-validation is given in
+Hastie, Tibshirani, and Friedman's book _The Elements of Statistical
+Learning_, and we reproduce an adapted version here. Let's consider a
+synthetic regression task with 100 samples and 1,000 features that are
+sampled independently from a Gaussian distribution. We also sample the
+response from a Gaussian distribution:
+
++*In[11]:*+
+[source, python]
+----
+rnd = np.random.RandomState(seed=0)
+X = rnd.normal(size=(100, 10000))
+y = rnd.normal(size=(100,))
+----
+
+((("scikit-learn classes and functions", "Ridge")))((("algorithms", "supervised, regression", "Ridge")))((("scikit-learn classes and functions", "SelectPercentile")))((("scikit-learn classes and functions", "f_regression")))((("regression", "f_regression")))Given the way we created the dataset, there is no relation between the
+data, +X+, and the target, +y+ (they are independent), so it should not be
+possible to learn anything from this dataset. We will now do the
+following. First, select the most informative of the 10 features using
+`SelectPercentile` feature selection, and then we evaluate a `Ridge`
+regressor using cross-validation:
+
++*In[12]:*+
+[source, python]
+----
+from sklearn.feature_selection import SelectPercentile, f_regression
+
+select = SelectPercentile(score_func=f_regression, percentile=5).fit(X, y)
+X_selected = select.transform(X)
+print("X_selected.shape: {}".format(X_selected.shape))
+----
+
++*Out[12]:*+
+----
+X_selected.shape: (100, 500)
+----
+
++*In[13]:*+
+[source, python]
+----
+from sklearn.model_selection import cross_val_score
+from sklearn.linear_model import Ridge
+print("Cross-validation accuracy (cv only on ridge): {:.2f}".format(
+      np.mean(cross_val_score(Ridge(), X_selected, y, cv=5))))
+----
+
++*Out[13]:*+
+----
+Cross-validation accuracy (cv only on ridge): 0.91
+----
+
+The mean __R__^2^ computed by cross-validation is 0.91,
+indicating a very good model. This clearly cannot be right, as our data
+is entirely random. What happened here is that our feature selection
+picked out some features among the 10,000 random features that are (by
+chance) very well correlated with the target. Because we fit the feature
+selection _outside_ of the cross-validation, it could find features that
+are correlated both on the training and the test folds. The information
+we leaked from the test folds was very informative, leading to highly
+unrealistic results. Let's compare this to a proper cross-validation
+using a pipeline:
+
++*In[14]:*+
+[source, python]
+----
+pipe = Pipeline([("select", SelectPercentile(score_func=f_regression,
+                                             percentile=5)),
+                 ("ridge", Ridge())])
+print("Cross-validation accuracy (pipeline): {:.2f}".format(
+      np.mean(cross_val_score(pipe, X, y, cv=5))))
+----
+
++*Out[14]:*+
+----
+Cross-validation accuracy (pipeline): -0.25
+----
+
+This time, we get a _negative_ __R__^2^ score, indicating a
+very poor model. Using the pipeline, the feature selection is now
+_inside_ the cross-validation loop. This means features can only be
+selected using the training folds of the data, not the test fold. The
+feature selection finds features that are correlated with the target on
+the training set, but because the data is entirely random, these
+features are not correlated with the target on the test set. In this
+example, rectifying the data leakage issue in the feature selection
+makes the difference between concluding that a model works very well and
+concluding that a model works not at all.((("", startref="ACpipegrid6")))((("", startref="GSpipe6")))
+****
+
+[[the-general-pipeline-interface]]
+=== The General Pipeline Interface
+
+((("algorithm chains and pipelines", "pipeline interface")))The `Pipeline` class is not restricted to preprocessing and
+classification, but can in fact join any number of estimators together.
+For example, you could build a pipeline containing feature extraction,
+feature selection, scaling, and classification, for a total of four
+steps. Similarly, the last step could be regression or clustering instead
+of classification.
+
+((("transform method")))The only requirement for estimators in a pipeline is that all but the
+last step need to have a `transform` method, so they can produce a new
+representation of the data that can be used in the next step.
+
+Internally, during the call to `Pipeline.fit`, the pipeline calls
+`fit` and then `transform` on each step in turn,footnote:[Or just
+`fit_transform`.] with the input given by the output of the +transform+
+method of the previous step. For the last step in the pipeline, just
+`fit` is called. 
+
+Brushing over some finer details, this is implemented
+as follows. Remember that `pipeline.steps` is a list of tuples, so
+`pipeline.steps[0][1]` is the first estimator, `pipeline.steps[1][1]` is
+the second estimator, and so on:
+
++*In[15]:*+
+[source, python]
+----
+def fit(self, X, y):
+    X_transformed = X
+    for name, estimator in self.steps[:-1]:
+        # iterate over all but the final step
+        # fit and transform the data
+        X_transformed = estimator.fit_transform(X_transformed, y)
+    # fit the last step
+    self.steps[-1][1].fit(X_transformed, y)
+    return self
+----
+
+When predicting using `Pipeline`, we similarly `transform` the data
+using all but the last step, and then call `predict` on the last step:
+
++*In[16]:*+
+[source, python]
+----
+def predict(self, X):
+    X_transformed = X
+    for step in self.steps[:-1]:
+        # iterate over all but the final step
+        # transform the data
+        X_transformed = step[1].transform(X_transformed)
+    # fit the last step
+    return self.steps[-1][1].predict(X_transformed)
+----
+
+The process is illustrated in <<overview_pipeline_training_prediction_process>> for two transformers, +T1+ and +T2+, and a
+pass:[<span class="keep-together">classifier</span>] (called +Classifier+).
+
+[[overview_pipeline_training_prediction_process]]
+.Overview of the pipeline training and prediction process
+image::images/malp_06in02.png[pipeline_illustration]
+
+((("scikit-learn classes and functions", "PCA", id="SLCFpca6a")))The pipeline is actually even more general than this. There is no
+requirement for the last step in a pipeline to have a `predict`
+function, and we could create a pipeline just containing, for example, a
+scaler and `PCA`. Then, because the last step (`PCA`) has a `transform`
+method, we could call `transform` on the pipeline to get the output of
+`PCA.transform` applied to the data that was processed by the previous
+step. The last step of a pipeline is only required to have a `fit`
+method.
+
+[[convenient-pipeline-creation-with-make_pipeline]]
+==== Convenient Pipeline Creation with make_pipeline
+
+((("algorithm chains and pipelines", "building pipelines with make_pipeline", id="ACPmakepipe6")))((("make_pipeline function", "syntax for")))((("scikit-learn classes and functions", "SVC", id="SLCFsvc6b")))((("classifiers", "SVC", id="Csvc6b")))((("scikit-learn classes and functions", "make_pipeline", id="SLCFmkpipe6a")))Creating a pipeline using the syntax described earlier is sometimes a
+bit cumbersome, and we often don't need user-specified names for each
+step. There is a convenience function, `make_pipeline`, that will create a
+pipeline for us and automatically name each step based on its class. The
+syntax for `make_pipeline` is as follows:
+
++*In[17]:*+
+[source, python]
+----
+from sklearn.pipeline import make_pipeline
+# standard syntax
+pipe_long = Pipeline([("scaler", MinMaxScaler()), ("svm", SVC(C=100))])
+# abbreviated syntax
+pipe_short = make_pipeline(MinMaxScaler(), SVC(C=100))
+----
+
+((("make_pipeline function", "displaying steps attribute")))The pipeline objects `pipe_long` and `pipe_short` do exactly the same
+thing, but `pipe_short` has steps that were automatically named.
+We can see the names of the steps by looking at the `steps` attribute:
+
++*In[18]:*+
+[source, python]
+----
+print("Pipeline steps:\n{}".format(pipe_short.steps))
+----
+
++*Out[18]:*+
+----
+Pipeline steps:
+[('minmaxscaler', MinMaxScaler(copy=True, feature_range=(0, 1))),
+ ('svc', SVC(C=100, cache_size=200, class_weight=None, coef0=0.0,
+	     decision_function_shape=None, degree=3, gamma='auto',
+             kernel='rbf', max_iter=-1, probability=False,
+             random_state=None, shrinking=True, tol=0.001,
+             verbose=False))]
+----
+
+((("scikit-learn classes and functions", "StandardScaler", id="SLCFstdscal6a")))((("algorithms", "scaling", "StandardScaler", id="Ascalstndscal6a")))The steps are named `minmaxscaler` and `svc`. In general, the step names
+are just lowercase versions of the class names. If multiple steps have
+the same class, a number is appended:
+
++*In[19]:*+
+[source, python]
+----
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+
+pipe = make_pipeline(StandardScaler(), PCA(n_components=2), StandardScaler())
+print("Pipeline steps:\n{}".format(pipe.steps))
+----
+
++*Out[19]:*+
+----
+Pipeline steps:
+[('standardscaler-1', StandardScaler(copy=True, with_mean=True, with_std=True)),
+ ('pca', PCA(copy=True, iterated_power=4, n_components=2, random_state=None,
+             svd_solver='auto', tol=0.0, whiten=False)),
+ ('standardscaler-2', StandardScaler(copy=True, with_mean=True, with_std=True))]
+----
+
+As you can see, the first `StandardScaler` step was named
+`standardscaler-1` and the second `standardscaler-2`. However, in
+such settings it might be better to use the `Pipeline` construction with
+explicit names, to give more semantic names to each step.
+
+[[accessing-step-attributes]]
+==== Accessing Step Attributes
+
+((("make_pipeline function", "accessing step attributes")))Often you will want to inspect attributes of one of the steps of the
+pipeline—say, the coefficients of a linear model or the components
+extracted by `PCA`. The easiest way to access the steps in a pipeline is via
+the `named_steps` attribute, which is a dictionary from the step names to
+the estimators:((("", startref="SLCFpca6a")))
+
+[role="pagebreak-before"]
++*In[20]:*+
+[source, python]
+----
+# fit the pipeline defined before to the cancer dataset
+pipe.fit(cancer.data)
+# extract the first two principal components from the "pca" step
+components = pipe.named_steps["pca"].components_
+print("components.shape: {}".format(components.shape))
+----
+
++*Out[20]:*+
+----
+components.shape: (2, 30)
+----
+
+
+[[accessing-attributes-in-grid-searched-pipeline.]]
+==== Accessing Attributes in a Grid-Searched Pipeline
+
+((("make_pipeline function", "grid-searched pipelines and")))((("grid search", "accessing pipeline attributes")))((("scikit-learn classes and functions", "LogisticRegression")))((("classifiers", "LogisticRegression")))As we discussed earlier in this chapter, one of the main reasons to use pipelines is for
+doing grid searches. A common task is to access some of the steps of a
+pipeline inside a grid search. Let's grid search a `LogisticRegression`
+classifier on the `cancer` dataset, using `Pipeline` and
+`StandardScaler` to scale the data before passing it to the
+`LogisticRegression` classifier. First we create a pipeline using the
+`make_pipeline` function:
+
++*In[21]:*+
+[source, python]
+----
+from sklearn.linear_model import LogisticRegression
+
+pipe = make_pipeline(StandardScaler(), LogisticRegression())
+----
+
+Next, we create a parameter grid. As explained in <<supervised-learning>>, the regularization parameter to tune for `LogisticRegression` is the parameter `C`. We use a logarithmic grid for this parameter, searching between 0.01 and
+100. Because we used the `make_pipeline` function, the name of the
+`LogisticRegression` step in the pipeline is the lowercased class name,
+`logisticregression`. To tune the parameter +C+, we therefore have to
+specify a parameter grid for `logisticregression__C`:
+
++*In[22]:*+
+[source, python]
+----
+param_grid = {'logisticregression__C': [0.01, 0.1, 1, 10, 100]}
+----
+
+((("scikit-learn classes and functions", "GridSearchCV", id="SLCFgridsearch6b")))As usual, we split the +cancer+ dataset into training and test sets, and
+fit a grid search:
+
++*In[23]:*+
+[source, python]
+----
+X_train, X_test, y_train, y_test = train_test_split(
+    cancer.data, cancer.target, random_state=4)
+grid = GridSearchCV(pipe, param_grid, cv=5)
+grid.fit(X_train, y_train)
+----
+
+So how do we access the coefficients of the best `LogisticRegression`
+model that was found by `GridSearchCV`? From <<model-evaluation-and-improvement>> we know that the
+best model found by pass:[<span class="keep-together"><code>GridSearchCV</code></span>], trained on all the training data, is
+stored in `grid.best_estimator_`:
+
+[role="pagebreak-before"]
++*In[24]:*+
+[source, python]
+----
+print("Best estimator:\n{}".format(grid.best_estimator_))
+----
+
++*Out[24]:*+
+----
+Best estimator:
+Pipeline(steps=[
+    ('standardscaler', StandardScaler(copy=True, with_mean=True, with_std=True)), 
+    ('logisticregression', LogisticRegression(C=0.1, class_weight=None, 
+    dual=False, fit_intercept=True, intercept_scaling=1, max_iter=100, 
+    multi_class='ovr', n_jobs=1, penalty='l2', random_state=None,
+    solver='liblinear', tol=0.0001, verbose=0, warm_start=False))])
+----
+
+This `best_estimator_` in our case is a pipeline with two steps,
+`standardscaler` and `logisticregression`. To access the
+`logisticregression` step, we can use the `named_steps` attribute of the
+pipeline, as explained earlier:
+
++*In[25]:*+
+[source, python]
+----
+print("Logistic regression step:\n{}".format(
+      grid.best_estimator_.named_steps["logisticregression"]))
+----
+
++*Out[25]:*+
+----
+Logistic regression step:
+LogisticRegression(C=0.1, class_weight=None, dual=False, fit_intercept=True,
+                  intercept_scaling=1, max_iter=100, multi_class='ovr', n_jobs=1,
+                  penalty='l2', random_state=None, solver='liblinear', tol=0.0001,
+                  verbose=0, warm_start=False)
+----
+
+Now that we have the trained `LogisticRegression` instance, we can
+access the coefficients (weights) associated with each input feature:
+
++*In[26]:*+
+[source, python]
+----
+print("Logistic regression coefficients:\n{}".format(
+      grid.best_estimator_.named_steps["logisticregression"].coef_))
+----
+
++*Out[26]:*+
+----
+Logistic regression coefficients:
+[[-0.389 -0.375 -0.376 -0.396 -0.115  0.017 -0.355 -0.39  -0.058  0.209
+  -0.495 -0.004 -0.371 -0.383 -0.045  0.198  0.004 -0.049  0.21   0.224
+  -0.547 -0.525 -0.499 -0.515 -0.393 -0.123 -0.388 -0.417 -0.325 -0.139]]
+----
+
+This might be a somewhat lengthy expression, but often it comes in handy in
+understanding your models.((("", startref="ACPmakepipe6")))
+
+[[grid-searching-preprocessing-steps-and-model-parameters]]
+=== Grid-Searching Preprocessing Steps and Model Parameters
+
+((("algorithm chains and pipelines", "grid search preprocessing steps")))((("grid search", "pipeline preprocessing")))((("models", "pipeline preprocessing and")))((("preprocessing", "pipelines and")))((("scikit-learn classes and functions", "Ridge", id="SLCFridge6b")))((("algorithms", "supervised, regression", "Ridge", id="Asupregridge6b")))((("scikit-learn classes and functions", "load_boston")))((("scikit-learn classes and functions", "PolynomialFeatures")))Using pipelines, we can encapsulate all the processing steps in our machine
+learning workflow in a single +scikit-learn+ estimator. Another benefit
+of doing this is that we can now _adjust the parameters of the
+preprocessing_ using the outcome of a supervised task like regression or
+classification. In previous chapters, we used polynomial features on the
+`boston` dataset before applying the ridge regressor. Let's model that
+using a pipeline instead. The pipeline contains three steps—scaling the
+data, computing polynomial features, and ridge regression:
+
++*In[27]:*+
+[source, python]
+----
+from sklearn.datasets import load_boston
+boston = load_boston()
+X_train, X_test, y_train, y_test = train_test_split(boston.data, boston.target,
+                                                    random_state=0)
+
+from sklearn.preprocessing import PolynomialFeatures
+pipe = make_pipeline(
+    StandardScaler(),
+    PolynomialFeatures(),
+    Ridge())
+----
+
+How do we know which degrees of polynomials to choose, or whether to
+choose any polynomials or interactions at all? Ideally we want to select
+the `degree` parameter based on the outcome of the classification. Using
+our pipeline, we can search over the `degree` parameter together with
+the parameter `alpha` of `Ridge`. To do this, we define a `param_grid`
+that contains both, appropriately prefixed by the step names:
+
++*In[28]:*+
+[source, python]
+----
+param_grid = {'polynomialfeatures__degree': [1, 2, 3],
+              'ridge__alpha': [0.001, 0.01, 0.1, 1, 10, 100]}
+----
+
+Now we can run our grid search again:
+
++*In[29]:*+
+[source, python]
+----
+grid = GridSearchCV(pipe, param_grid=param_grid, cv=5, n_jobs=-1)
+grid.fit(X_train, y_train)
+----
+
+We can visualize the outcome of the cross-validation using a heat map (<<heatmap_mean_cv_score_func_degree_poly>>), as
+we did in <<model-evaluation-and-improvement>>:
+
++*In[30]:*+
+[source, python]
+----
+plt.matshow(grid.cv_results_['mean_test_score'].reshape(3, -1),
+            vmin=0, cmap="viridis")
+plt.xlabel("ridge__alpha")
+plt.ylabel("polynomialfeatures__degree")
+plt.xticks(range(len(param_grid['ridge__alpha'])), param_grid['ridge__alpha'])
+plt.yticks(range(len(param_grid['polynomialfeatures__degree'])),
+           param_grid['polynomialfeatures__degree'])
+
+plt.colorbar()
+----
+
+[[heatmap_mean_cv_score_func_degree_poly]]
+.Heat map of mean cross-validation score as a function of the degree of the polynomial features and alpha parameter of Ridge
+image::images/malp_06in03.png[png]
+
+Looking at the results produced by the cross-validation, we can see that
+using polynomials of degree two helps, but that degree-three polynomials
+are much worse than either degree one or two. This is reflected in the
+best parameters that were found:
+
++*In[31]:*+
+[source, python]
+----
+print("Best parameters: {}".format(grid.best_params_))
+----
+
++*Out[31]:*+
+----
+Best parameters: {'polynomialfeatures__degree': 2, 'ridge__alpha': 10}
+----
+
+Which lead to the following score:
+
++*In[32]:*+
+[source, python]
+----
+print("Test-set score: {:.2f}".format(grid.score(X_test, y_test)))
+----
+
++*Out[32]:*+
+----
+Test-set score: 0.77
+----
+
+Let's run a grid search without polynomial features for comparison:
+
++*In[33]:*+
+[source, python]
+----
+param_grid = {'ridge__alpha': [0.001, 0.01, 0.1, 1, 10, 100]}
+pipe = make_pipeline(StandardScaler(), Ridge())
+grid = GridSearchCV(pipe, param_grid, cv=5)
+grid.fit(X_train, y_train)
+print("Score without poly features: {:.2f}".format(grid.score(X_test, y_test)))
+----
+
+[role="pagebreak-before"]
++*Out[33]:*+
+----
+Score without poly features: 0.63
+----
+
+((("", startref="SLCFmkpipe6a")))((("", startref="Asupregridge6b")))((("", startref="SLCFridge6b")))As we would expect looking at the grid search results visualized in <<heatmap_mean_cv_score_func_degree_poly>>, using
+no polynomial features leads to decidedly worse results. 
+
+Searching over
+preprocessing parameters together with model parameters is a very
+powerful strategy. However, keep in mind that `GridSearchCV` tries _all
+possible combinations_ of the specified parameters. Therefore, adding
+more parameters to your grid exponentially increases the number of
+models that need to be built.
+
+[[grid-searching-what-model-to-use]]
+=== Grid-Searching Which Model To Use
+((("algorithm chains and pipelines", "grid-searching for model selection")))((("grid search", "model selection with")))((("models", "selecting with grid search")))((("scikit-learn classes and functions", "MinMaxScaler")))((("algorithms", "scaling", "MinMaxScaler")))((("scikit-learn classes and functions", "RandomForestClassifier")))You can even go further in combining `GridSearchCV` and `Pipeline`: it
+is also possible to search over the actual steps being performed in the
+pipeline (say whether to use `StandardScaler` or `MinMaxScaler`). This
+leads to an even bigger search space and should be considered carefully.
+Trying all possible solutions is usually not a viable machine learning
+strategy. However, here is an example comparing a
+`RandomForestClassifier` and an `SVC` on the `iris` dataset. We know
+that the `SVC` might need the data to be scaled, so we also search over
+whether to use `StandardScaler` or no preprocessing. For the
+`RandomForestClassifier`, we know that no preprocessing is necessary. We
+start by defining the pipeline. Here, we explicitly name the steps. We
+want two steps, one for the preprocessing and then a classifier. We can
+instantiate this using `SVC` and `StandardScaler`:
+
++*In[34]:*+
+[source, python]
+----
+pipe = Pipeline([('preprocessing', StandardScaler()), ('classifier', SVC())])
+----
+
+((("", startref="SLCFpipeline6a")))Now we can define the `parameter_grid` to search over. We want the
+`classifier` to be either `RandomForestClassifier` or `SVC`. Because
+they have different parameters to tune, and need different
+preprocessing, we can make use of the list of search grids we discussed
+in <<search-over-spaces-that-are-not-grids>>. To assign an estimator to a step, we use the name of the
+step as the parameter name. When we wanted to skip a step in the
+pipeline (for example, because we don't need preprocessing for the
++RandomForest+), we can set that step to `None`:
+
++*In[35]:*+
+[source, python]
+----
+from sklearn.ensemble import RandomForestClassifier
+
+param_grid = [
+    {'classifier': [SVC()], 'preprocessing': [StandardScaler(), None],
+     'classifier__gamma': [0.001, 0.01, 0.1, 1, 10, 100],
+     'classifier__C': [0.001, 0.01, 0.1, 1, 10, 100]},
+    {'classifier': [RandomForestClassifier(n_estimators=100)],
+     'preprocessing': [None], 'classifier__max_features': [1, 2, 3]}]
+----
+
+Now we can instantiate and run the grid search as usual, here on the
+`cancer` dataset:
+
++*In[36]:*+
+[source, python]
+----
+X_train, X_test, y_train, y_test = train_test_split(
+    cancer.data, cancer.target, random_state=0)
+
+grid = GridSearchCV(pipe, param_grid, cv=5)
+grid.fit(X_train, y_train)
+
+print("Best params:\n{}\n".format(grid.best_params_))
+print("Best cross-validation score: {:.2f}".format(grid.best_score_))
+print("Test-set score: {:.2f}".format(grid.score(X_test, y_test)))
+----
+
++*Out[36]:*+
+----
+Best params:
+{'classifier':
+ SVC(C=10, cache_size=200, class_weight=None, coef0=0.0,
+     decision_function_shape=None, degree=3, gamma=0.01, kernel='rbf',
+     max_iter=-1, probability=False, random_state=None, shrinking=True,
+     tol=0.001, verbose=False),
+ 'preprocessing':
+ StandardScaler(copy=True, with_mean=True, with_std=True),
+ 'classifier__C': 10, 'classifier__gamma': 0.01}
+
+Best cross-validation score: 0.99
+Test-set score: 0.98
+----
+
+The outcome of the grid search is that `SVC` with `StandardScaler`
+preprocessing, `C=10`, and `gamma=0.01` gave the best result.((("", startref="SLCFgridsearch6b")))((("", startref="Csvc6b")))((("", startref="SLCFsvc6b")))((("", startref="Ascalstndscal6a")))((("", startref="SLCFstdscal6a")))
+
+[[algorithm-chains-summary-and-outlook]]
+=== Summary and Outlook
+
+((("algorithm chains and pipelines", "overview of")))((("scikit-learn classes and functions", "Pipeline")))In this chapter we introduced the `Pipeline` class, a general-purpose
+tool to chain together multiple processing steps in a machine learning
+workflow. Real-world applications of machine learning rarely involve an
+isolated use of a model, and instead are a sequence of processing steps.
+Using pipelines allows us to encapsulate multiple steps into a single
+Python object that adheres to the familiar +scikit-learn+ interface of
+`fit`, `predict`, and `transform`. In particular when doing model
+evaluation using cross-validation and parameter selection using
+grid search, using the `Pipeline` class to capture all the processing steps
+is essential for proper evaluation. The `Pipeline` class also allows
+writing more succinct code, and reduces the likelihood of mistakes that
+can happen when building processing chains without the `pipeline` class
+(like forgetting to apply all transformers on the test set, or not
+applying them in the right order). Choosing the right combination of
+feature extraction, preprocessing, and models is somewhat of an art, and often requires some trial and error. However, using pipelines, this
+"trying out" of many different processing steps is quite simple. When
+experimenting, be careful not to overcomplicate your processes, and
+make sure to evaluate whether every component you are including in your
+model is necessary.
+
+With this chapter, we have completed our survey of general-purpose tools
+and algorithms provided by +scikit-learn+. You now possess all the
+required skills and know the necessary mechanisms to apply machine
+learning in practice. In the next chapter, we will dive in more detail
+into one particular type of data that is commonly seen in practice, and
+that requires some special expertise to handle correctly: text data.((("", startref="MLalg6")))((("", startref="algch6")))

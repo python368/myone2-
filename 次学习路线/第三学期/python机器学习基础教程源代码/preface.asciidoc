@@ -1,0 +1,171 @@
+﻿[preface]
+== Preface
+
+((("machine learning", "building your own systems")))Machine learning is an integral part of many commercial applications and research projects today, in areas ranging from medical diagnosis and treatment to finding your friends on social networks. Many people think that machine learning can only be applied by large companies with extensive research teams. In this book, we want to show you how easy it can be to build machine learning solutions yourself, and how to best go about it.
+With the knowledge in this book, you can build your own system for finding out how people feel on Twitter, or making predictions about global warming. The applications of machine learning are endless and, with the amount of data available today, mostly limited by your imagination.
+
+
+=== Who Should Read This Book
+((("machine learning", "prerequisites to learning")))This book is for current and aspiring machine learning practitioners looking to implement solutions to real-world machine learning problems. This is an introductory book requiring no previous knowledge of machine learning or artificial intelligence (AI). We focus on using Python and the +scikit-learn+ library, and work through all the steps to create a successful machine learning application. The methods we introduce will be helpful for scientists and researchers, as well as data scientists working on commercial applications. You will get the most out of the book if you are somewhat familiar with Python and the NumPy and +matplotlib+ libraries. 
+
+((("machine learning", "mathematics of")))We made a conscious effort not to focus too much on the math, but rather on the practical aspects of using machine learning algorithms. As mathematics (probability theory, in particular) is the foundation upon which machine learning is built, we won't go into the analysis of the algorithms in great detail. If you are interested in the mathematics of machine learning algorithms, we recommend the book _The Elements of Statistical Learning_ (Springer) by Trevor Hastie, Robert Tibshirani, and Jerome Friedman, which is available for free at http://statweb.stanford.edu/~tibs/ElemStatLearn/[the authors' website]. We will also not describe how to write machine learning algorithms from  scratch, and will instead focus on how to use the large array of models already implemented in +scikit-learn+ and other libraries.
+
+=== Why We Wrote This Book
+There are many books on machine learning and AI. However, all of them are meant for graduate students or PhD students in computer science, and they're full of advanced mathematics. This is in stark contrast with how machine learning is being used, as a commodity tool in research and commercial applications. Today, applying machine learning does not require a PhD. However, there are few resources out there that fully cover all the important aspects of implementing machine learning in practice, without requiring you to take advanced math courses. We hope this book will help people who want to apply machine learning without reading up on years' worth of calculus, linear algebra, and probability theory.
+
+
+
+=== Navigating This Book
+
+This book is organized roughly as follows:
+
+* <<introduction>> introduces the fundamental concepts of machine learning and its applications, and describes the setup we will be using throughout the book.
+* Chapters pass:[<a data-type="xref" data-xrefstyle="select:labelnumber" href="#supervised-learning">#supervised-learning</a> and <a data-type="xref" data-xrefstyle="select:labelnumber" href="#unsupervised-learning-and-preprocessing">#unsupervised-learning-and-preprocessing</a>] describe the actual machine learning algorithms that are most widely used in practice, and discuss their advantages and shortcomings.
+* <<representing-data-and-engineering-features>> discusses the importance of how we represent data that is processed by machine learning, and what aspects of the data to pay attention to.
+* <<model-evaluation-and-improvement>> covers advanced methods for model evaluation and parameter tuning, with a particular focus on cross-validation and grid search.
+* <<algorithm-chains-and-pipelines>> explains the concept of pipelines for chaining models and encapsulating your workflow.
+* <<working-with-text-data>> shows how to apply the methods described in earlier chapters to text data, and introduces some text-specific processing techniques.
+* <<outlook>> offers a high-level overview, and includes references to more advanced topics.
+
+While Chapters pass:[<a data-type="xref" data-xrefstyle="select:labelnumber" href="#supervised-learning">#supervised-learning</a> and <a data-type="xref" data-xrefstyle="select:labelnumber" href="#unsupervised-learning-and-preprocessing">#unsupervised-learning-and-preprocessing</a>] provide the actual algorithms, understanding all of these algorithms might not be necessary for a beginner.  If you need to build a machine learning system ASAP, we suggest starting with <<introduction>> and the opening sections of <<supervised-learning>>, which introduce all the core concepts. You can then skip to <<supervised-learning-summary-and-outlook>> in <<supervised-learning>>, which includes a list of all the supervised models that we cover. Choose the model that best fits your needs and flip back to read the section devoted to it for details. Then you can use the techniques in <<model-evaluation-and-improvement>> to evaluate and tune your model.
+
+=== Online Resources
+((("machine learning", "resources")))((("online resources")))((("resources")))While studying this book, definitely refer to the http://scikit-learn.org[+scikit-learn+ website] for more in-depth documentation of the classes and functions, and many examples.
+There is also a video course created by Andreas Müller, "Advanced Machine Learning with scikit-learn," that supplements this book. You can find it at http://bit.ly/advanced_machine_learning_scikit-learn.
+
+
+=== Conventions Used in This Book
+
+((("typographical conventions")))The following typographical conventions are used in this book:
+
+
+_Italic_:: Indicates new terms, URLs, email addresses, filenames, and file extensions.
+
+
++Constant width+:: Used for program listings, as well as within paragraphs to refer to program elements such as variable or function names, databases, data types, environment variables, statements, and keywords. Also used for commands and module and package names.
+
+
+**`Constant width bold`**:: Shows commands or other text that should be typed literally by the user.
+
+
+_++Constant width italic++_:: Shows text that should be replaced with user-supplied values or by values determined by context.
+
+
+
+[TIP]
+====
+This element signifies a tip or suggestion.
+====
+
+[NOTE]
+====
+This element signifies a general note.
+====
+
+
+[WARNING]
+====
+This icon indicates a warning or caution.
+====
+
+
+=== Using Code Examples
+
+((("code examples", "downloading")))Supplemental material (code examples, IPython notebooks, etc.) is available for download at link:$$ https://github.com/amueller/introduction_to_ml_with_python$$[].
+
+
+((("code examples", "permission for use")))((("permissions")))This book is here to help you get your job done. In general, if example code is offered with this book, you may use it in your programs and documentation. You do not need to contact us for permission unless you’re reproducing a significant portion of the code. For example, writing a program that uses several chunks of code from this book does not require permission. Selling or distributing a CD-ROM of examples from O’Reilly books does require permission. Answering a question by citing this book and quoting example code does not require permission. Incorporating a significant amount of example code from this book into your product’s documentation does require permission.
+
+
+((("attributions")))We appreciate, but do not require, attribution. An attribution usually includes the title, author, publisher, and ISBN. For example: “_An Introduction to Machine Learning with Python_ by Andreas C. Müller and Sarah Guido (O'Reilly). Copyright 2017 Sarah Guido and Andreas Müller, 978-1-449-36941-5.”
+
+
+If you feel your use of code examples falls outside fair use or the permission given above, feel free to contact us at pass:[<a class="email" href="mailto:permissions@oreilly.com"><em>permissions@oreilly.com</em></a>].
+
+
+=== Safari® Books Online
+
+[role = "safarienabled"]
+[NOTE]
+====
+pass:[<a href="http://safaribooksonline.com" class="orm:hideurl:ital"><em class="hyperlink">Safari Books Online</em></a>] is an on-demand digital library that delivers expert pass:[<a href="https://www.safaribooksonline.com/explore/" class="orm:hideurl">content</a>] in both book and video form from the world&#8217;s leading authors in technology and business.
+====
+
+((("Safari Books Online")))Technology professionals, software developers, web designers, and business and creative professionals use Safari Books Online as their primary resource for research, problem solving, learning, and certification training.
+
+++++
+<p>Safari Books Online offers a range of <a href="https://www.safaribooksonline.com/pricing/" class="orm:hideurl">plans and pricing</a> for <a href="https://www.safaribooksonline.com/enterprise/" class="orm:hideurl">enterprise</a>, <a href="https://www.safaribooksonline.com/government/" class="orm:hideurl">government</a>, <a href="https://www.safaribooksonline.com/academic-public-library/" class="orm:hideurl">education</a>, and individuals.</p>
+
+<p>Members have access to thousands of books, training videos, and prepublication manuscripts in one fully searchable database from publishers like O&#8217;Reilly Media, Prentice Hall Professional, Addison-Wesley Professional, Microsoft Press, Sams, Que, Peachpit Press, Focal Press, Cisco Press, John Wiley &amp; Sons, Syngress, Morgan Kaufmann, IBM Redbooks, Packt, Adobe Press, FT Press, Apress, Manning, New Riders, McGraw-Hill, Jones &amp; Bartlett, Course Technology, and hundreds <a href="https://www.safaribooksonline.com/our-library/" class="orm:hideurl">more</a>. For more information about Safari Books Online, please visit us <a class="orm:hideurl" href="http://safaribooksonline.com">online</a>.</p>
+++++
+
+=== How to Contact Us
+
+((("comments and questions")))Please address comments and questions concerning this book to the publisher:
+
+++++
+<ul class="simplelist">
+  <li>O’Reilly Media, Inc.</li>
+  <li>1005 Gravenstein Highway North</li>
+  <li>Sebastopol, CA 95472</li>
+  <li>800-998-9938 (in the United States or Canada)</li>
+  <li>707-829-0515 (international or local)</li>
+  <li>707-829-0104 (fax)</li>
+</ul>
+++++
+
+We have a web page for this book, where we list errata, examples, and any additional information. You can access this page at link:$$http://bit.ly/intro-machine-learning-python$$[].
+
+To comment or ask technical questions about this book, send email to pass:[<a class="email" href="mailto:bookquestions@oreilly.com"><em>bookquestions@oreilly.com</em></a>].
+
+For more information about our books, courses, conferences, and news, see our website at link:$$http://www.oreilly.com$$[].
+
+
+Find us on Facebook: link:$$http://facebook.com/oreilly$$[]
+
+
+Follow us on Twitter: link:$$http://twitter.com/oreillymedia$$[]
+
+
+Watch us on YouTube: link:$$http://www.youtube.com/oreillymedia$$[]
+
+
+=== Acknowledgments
+
+==== From Andreas
+((("acknowledgments")))Without the help and support of a large group of people, this book would never have existed.
+
+I would like to thank the editors, Meghan Blanchette, Brian MacDonald, and in
+particular Dawn Schanafelt, for helping Sarah and me make this book a reality.
+
+I want to thank my reviewers, Thomas Caswell, Olivier Grisel, Stefan van der
+Walt, and John Myles White, who took the time to read the early versions of this
+book and provided me with invaluable feedback--in addition to being some of the
+cornerstones of the scientific open source ecosystem.
+
+I am forever thankful for the welcoming open source scientific Python
+community, especially the contributors to +scikit-learn+. Without the support
+and help from this community, in particular from Gael Varoquaux, Alex Gramfort,
+and Olivier Grisel, I would never have become a core contributor to
++scikit-learn+ or learned to understand this package as well as I do now. My
+thanks also go out to all the other contributors who donate their time to
+improve and maintain this package.
+
+I'm also thankful for the discussions with many of my colleagues and peers that helped me understand the challenges of machine learning and gave me ideas
+for structuring a textbook. Among the people I talk to about machine learning,
+I specifically want to thank Brian McFee, Daniela Huttenkoppen, Joel Nothman,
+Gilles Louppe, Hugo Bowne-Anderson, Sven Kreis, Alice Zheng, Kyunghyun Cho,
+Pablo Baberas, and Dan Cervone.
+
+My thanks also go out to Rachel Rakov, who was an eager beta tester and
+proofreader of an early version of this book, and helped me shape it in many
+ways.
+
+On the personal side, I want to thank my parents, Harald and Margot, and my
+sister, Miriam, for their continuing support and encouragement.
+I also want to thank the many people in my life whose love and friendship
+gave me the energy and support to undertake such a challenging task.
+
+
+==== From Sarah
+I would like to thank Meg Blanchette, without whose help and guidance this project would not have even existed. Thanks to Celia La and Brian Carlson for reading in the early days. Thanks to the O'Reilly folks for their endless patience. And finally, thanks to DTS, for your everlasting and endless support.
