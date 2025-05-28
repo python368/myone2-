@@ -15,4 +15,4 @@ def drawKochSF(x1,y1,x2,y2, t):
         # 第3个片段
         drawKochSF(p2[0], p2[1], p3[0], p3[1], t)
         # 第4个片段
-        drawKochSF(p3[0], p3[1], x2, y2, t);
+        drawKochSF(p3[0], p3[1], x2, y2, t)
