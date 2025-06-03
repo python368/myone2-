@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>鸡足山自驾攻略</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>鸡足山自驾一日游攻略</h1>
+        <div class="weather-container" id="weather">
+            <h3>实时天气</h3>
+            <p>加载中...</p>
+        </div>
+    </header>
+
+    <main>
+        <section class="itinerary">
+            <h2>行程路线 <button class="toggle">展开</button></h2>
+            <div class="content">
+    <div class="timeline">
+        <div class="timeline-item">
+            <div class="time">06:00</div>
+            <div class="event">大理古城出发（经度100.166, 纬度25.702）</div>
+        </div>
+        <div class="timeline-item">
+            <div class="time">06:45</div>
+            <div class="event">双廊观景台休息（经度100.185, 纬度25.908）</div>
+        </div>
+        <div class="timeline-item">
+            <div class="time">08:00</div>
+            <div class="event">抵达鸡足山东门停车场（经度100.585, 纬度25.983）</div>
+        </div>
+        <div class="timeline-item">
+            <div class="time">08:30</div>
+            <div class="event">乘坐观光车至索道站</div>
+        </div>
+        <div class="timeline-item">
+            <div class="time">09:00</div>
+            <div class="event">金顶寺区域游览（海拔3248米）</div>
+        </div>
+        <div class="timeline-item">
+            <div class="time">11:30</div>
+            <div class="event">金顶寺素斋午餐</div>
+        </div>
+        <div class="timeline-item">
+            <div class="time">12:30</div>
+            <div class="event">徒步前往迦叶殿（经度100.579, 纬度25.972）</div>
+        </div>
+        <div class="timeline-item">
+            <div class="time">14:00</div>
+            <div class="event">游览慧灯庵与空心树</div>
+        </div>
+        <div class="timeline-item">
+            <div class="time">15:30</div>
+            <div class="event">返回停车场驾车返程</div>
+        </div>
+        <div class="timeline-item">
+            <div class="time">18:00</div>
+            <div class="event">抵达大理市区</div>
+        </div>
+    </div>
+    <div class="map-container">
+        <div id="map"> 
+            <div class="map-placeholder">
+                <p>🚗 大理 → 鸡足山自驾路线图</p>
+                <div class="route">
+                    <div class="point start">大理</div>
+                    <div class="line"></div>
+                    <div class="point waypoint">双廊</div>
+                    <div class="line"></div>
+                    <div class="point end">鸡足山</div>
+                </div>
+                <p class="hint">提示：在实际APP中此处将显示高德地图</p>
+            </div>
+        </div>
+        <div class="map-controls">
+            <button id="zoomIn">放大</button>
+            <button id="zoomOut">缩小</button>
+        </div>
+    </div>
+            </div>
+        </section>
+
+        <section class="attractions">
+            <h2>核心景点 <button class="toggle">展开</button></h2>
+        <div class="content">
+            <div class="attraction-card">
+                <h3>金顶寺</h3>
+                <p>鸡足山最高点，海拔3248米，内有：</p>
+                <ul>
+                    <li>华首门：迦叶尊者入定圣地</li>
+                    <li>楞严塔：13层白塔，可俯瞰苍山洱海</li>
+                    <li>观景台：云海日出最佳观赏点</li>
+                </ul>
+                <div class="tips">📌 提示：早晨10点前到达可避开云雾</div>
+            </div>
+            
+            <div class="attraction-card">
+                <h3>迦叶殿</h3>
+                <p>千年古寺，佛教圣地：</p>
+                <ul>
+                    <li>五百罗汉堂：形态各异的罗汉塑像</li>
+                    <li>迦叶修行洞：传说中尊者闭关处</li>
+                    <li>古碑林：历代高僧碑刻</li>
+                </ul>
+                <div class="tips">📌 提示：殿内禁止拍照，请保持安静</div>
+            </div>
+            
+            <div class="attraction-card">
+                <h3>空心树</h3>
+                <p>树龄1600年的唐代古树：</p>
+                <ul>
+                    <li>树洞空间：可容纳10人站立</li>
+                    <li>树顶平台：观景视角独特</li>
+                    <li>古树传说：当地祈福圣地</li>
+                </ul>
+                <div class="tips">📌 提示：顺时针绕树三圈祈福</div>
+            </div>
+        </div>
+        </section>
+
+        <section class="calculator">
+            <h2>费用计算器</h2>
+            <div class="content">
+                <label>人数: <input type="number" id="visitors" min="1" value="2"></label>
+                <label>索道: 
+                    <select id="cableway">
+                        <option value="0">不乘坐</option>
+                        <option value="45">单程</option>
+                        <option value="75" selected>往返</option>
+                    </select>
+                </label>
+                <button id="calculate">计算费用</button>
+                <div id="result"></div>
+            </div>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
