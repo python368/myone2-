@@ -1,5 +1,4 @@
 import turtle
-
 def draw_tringle(x1, y1, x2, y2, x3, y3, t):
     #尝试绘制一个三角形
     t.up()
