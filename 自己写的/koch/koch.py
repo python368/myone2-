@@ -19,3 +19,26 @@ def drawKochSF(x1,y1,x2,y2, t):
         # 第4个片段
         drawKochSF(p3[0], p3[1], x2, y2, t)
     else:
+        #绘制中间的角。
+        t.up()
+        t.senpos(p1[0], p1[1])
+        t.down()
+        t.setpos(p2[0], p2[1])
+        t.setpos(p3[0], p3[1])
+        # 绘制两侧的边。
+        t.up()
+        t.setpos(p1[0], p1[1])
+        t.down()
+        t.setpos(p1[0], p1[1])
+        t.up()
+        t.setpos(p3[0], p3[1])
+        t.down()
+        t.setpos(x2, y2)
+def main():
+    print("绘制科赫雪花中...")
+    t = turtle.Turtle()
+    t.hideturtle()
+    #绘制科赫雪花
+    drawKochSF(-100, 0, 100, 0, t)
+    drawKochSF(0, -173.2, -100, 0, t)
+    drawKochSF(100, 0, 0, -173.2, t)
