@@ -48,4 +48,7 @@ def main():
         print("异常，正在退出...")
         exit(0)
     #等待用户在屏幕上单击后退出
-    turtle.Srceen().exitonclick()
+    turtle.Screen().exitonclick()
+# 调用函数main()
+if __name__ == '__main__':
+    main()
