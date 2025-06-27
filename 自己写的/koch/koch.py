@@ -1,5 +1,6 @@
 import math
 import turtle
+#以递归的方式绘制科赫雪花
 def drawKochSF(x1,y1,x2,y2, t):
     d = math.sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2))
     r = d/3.0
