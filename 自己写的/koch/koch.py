@@ -39,6 +39,12 @@ def main():
     t = turtle.Turtle()
     t.hideturtle()
     #绘制科赫雪花
-    drawKochSF(-100, 0, 100, 0, t)
-    drawKochSF(0, -173.2, -100, 0, t)
-    drawKochSF(100, 0, 0, -173.2, t)
+    try:
+        drawKochSF(-100, 0, 100, 0, t)
+        drawKochSF(0, -173.2, -100, 0, t)
+        drawKochSF(100, 0, 0, -173.2, t)
+    except:
+        print("异常，正在退出...")
+        exit(0)
+    #等待用户在屏幕上单击后退出
+    turtle.Srceen().exitonclick()
