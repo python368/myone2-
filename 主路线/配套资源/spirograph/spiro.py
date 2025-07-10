@@ -8,12 +8,12 @@ Website: electronut.in
 """
 
 import random, argparse
+import numpy as np
 import math
 import turtle
 import random
-from datetime import datetime
 from PIL import Image
-# A class that draws a spirograph
+from datetime import datetime
 class Spiro:
     # constructor
     def __init__(self, xc, yc, col, R, r, l):
