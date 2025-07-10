@@ -18,3 +18,4 @@ file = wave.open('sine220.wav', 'wb')
 file.setparams((1, 2, sRate, nSamples, 'NONE', 'uncompressed'))
 file.writeframes(data)
 file.close()
+
